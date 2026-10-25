@@ -1,5 +1,5 @@
-import dictation_server
+import pesto_server
 
 
 def test_smoke():
-    assert hasattr(dictation_server, "main")
+    assert hasattr(pesto_server, "main")

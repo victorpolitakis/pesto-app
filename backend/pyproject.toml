@@ -1,5 +1,5 @@
 [project]
-name = "dictation-server"
+name = "pesto-server"
 version = "0.1.0"
 description = "Add your description here"
 authors = [
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-dictation-server = "dictation_server:main"
+pesto-server = "pesto_server:main"
 
 [build-system]
 requires = ["uv_build>=0.12.15,<0.13.0"]
