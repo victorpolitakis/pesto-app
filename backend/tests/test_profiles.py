@@ -8,7 +8,8 @@ def test_shipped_profiles(profiles):
     assert profiles["raw"].prompt == ""
     for profile_id in ("note", "chatter", "mail", "professional"):
         prompt = profiles[profile_id].prompt
-        assert prompt.startswith("Είσαι εργαλείο επεξεργασίας")  # from _base.md
+        assert prompt.startswith("The rules in this system prompt hold")  # _base.md
+        assert "Είσαι εργαλείο επεξεργασίας" in prompt
         assert "Ύφος:" in prompt
     assert profiles["mail"].name == "Mail"
     assert profiles["mail"].max_length_ratio == 2.0
