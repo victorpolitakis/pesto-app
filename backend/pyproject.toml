@@ -8,7 +8,9 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.143.0",
+    "pydantic-settings>=2.16.1",
     "uvicorn[standard]>=0.54.0",
+    "websockets>=17.2",
 ]
 
 [project.scripts]
@@ -20,9 +22,18 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.16.0",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
+]
+tools = [
+    "sounddevice>=0.5.6",
 ]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["tools"]
+markers = ["live: needs the real Soniox or claude (not run in CI)"]
+addopts = "-m 'not live'"
