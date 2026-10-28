@@ -38,6 +38,15 @@ class ProfilesRepository @Inject constructor(
         fun choose(packageName: String?, appProfiles: Map<String, String>, default: String): String =
             packageName?.let { appProfiles[it] } ?: known(default)
 
+        /**
+         * Profile id → the apps that get it, by [choose]. [packages]: the apps of
+         * the History, the most used first; an app with a profile of its own and
+         * no dictation yet comes after them.
+         */
+        fun appsByProfile(packages: List<String>, appProfiles: Map<String, String>, default: String): Map<String, List<ProfileApp>> =
+            (packages + appProfiles.keys.filterNot { it in packages })
+                .groupBy({ choose(it, appProfiles, default) }, { ProfileApp(it, automatic = it !in appProfiles) })
+
         private fun known(id: String): String = ProfilesCatalog.find(id)?.id ?: ProfilesCatalog.RAW
     }
 }

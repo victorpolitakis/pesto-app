@@ -40,8 +40,8 @@ import com.victorpolitakis.pesto.ui.dictionary.DictionaryRoute
 import com.victorpolitakis.pesto.ui.history.HistoryDetailRoute
 import com.victorpolitakis.pesto.ui.history.HistoryRoute
 import com.victorpolitakis.pesto.ui.home.HomeScreen
-import com.victorpolitakis.pesto.ui.profiles.ProfileDetailScreen
-import com.victorpolitakis.pesto.ui.profiles.ProfilesScreen
+import com.victorpolitakis.pesto.ui.profiles.ProfileDetailRoute
+import com.victorpolitakis.pesto.ui.profiles.ProfilesRoute
 import com.victorpolitakis.pesto.ui.search.SearchRoute
 import com.victorpolitakis.pesto.ui.settings.SettingsScreen
 import kotlinx.coroutines.flow.Flow
@@ -118,7 +118,7 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
             onOpenApps = { nav.navigate(Routes.Apps) },
         )
     }
-    composable<Routes.Profiles> { ProfilesScreen(onOpenProfile = { id -> nav.navigate(Routes.ProfileDetail(id)) }) }
+    composable<Routes.Profiles> { ProfilesRoute(onOpenProfile = { id -> nav.navigate(Routes.ProfileDetail(id)) }) }
     composable<Routes.Dictionary> {
         val deleted = stringResource(R.string.term_deleted)
         DictionaryRoute(offerUndo = { restore -> undo.show(deleted, restore) })
@@ -132,9 +132,7 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
     }
     composable<Routes.Analytics> { AnalyticsScreen(onBack = { nav.popBackStack() }) }
     composable<Routes.Apps> { AppsScreen(onBack = { nav.popBackStack() }) }
-    composable<Routes.ProfileDetail> { entry ->
-        ProfileDetailScreen(id = entry.toRoute<Routes.ProfileDetail>().id, onBack = { nav.popBackStack() })
-    }
+    composable<Routes.ProfileDetail> { ProfileDetailRoute(onBack = { nav.popBackStack() }) }
     composable<Routes.HistoryDetail> {
         val deleted = stringResource(R.string.history_deleted)
         HistoryDetailRoute(onBack = { nav.popBackStack() }, offerUndo = { restore -> undo.show(deleted, restore) })

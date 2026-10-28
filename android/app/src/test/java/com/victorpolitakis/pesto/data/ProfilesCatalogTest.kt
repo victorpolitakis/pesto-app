@@ -35,4 +35,22 @@ class ProfilesCatalogTest {
         assertEquals("mail", ProfilesRepository.choose(null, apps, default = "mail"))
         assertEquals("raw", ProfilesRepository.choose("com.other", apps, default = "gone"))
     }
+
+    @Test
+    fun `the apps of each profile - their own, else the default`() {
+        val history = listOf("com.whatsapp", "com.google.android.gm", "org.telegram")
+        val own = mapOf("com.whatsapp" to "chatter", "com.slack" to "professional")
+        val users = ProfilesRepository.appsByProfile(history, own, default = "mail")
+
+        assertEquals(listOf(ProfileApp("com.whatsapp", automatic = false)), users["chatter"])
+        // In the order of the History; the default ones are «automatic».
+        assertEquals(
+            listOf(ProfileApp("com.google.android.gm", automatic = true), ProfileApp("org.telegram", automatic = true)),
+            users["mail"],
+        )
+        // An app with its own profile and no dictation yet.
+        assertEquals(listOf(ProfileApp("com.slack", automatic = false)), users["professional"])
+        assertNull(users["raw"])
+        assertEquals(emptyMap<String, List<ProfileApp>>(), ProfilesRepository.appsByProfile(emptyList(), emptyMap(), "raw"))
+    }
 }

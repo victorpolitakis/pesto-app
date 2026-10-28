@@ -62,5 +62,11 @@ data class AppUsage(val packageName: String, val dictations: Int, val lastUsed: 
 /** How many dictations have one value of a column (a profile, a fallback reason…). [value] null: none. */
 data class KeyCount(val value: String?, val dictations: Int)
 
+/** The dictations with [value], in a count by column: 0 when there are none. */
+fun List<KeyCount>.countOf(value: String?): Int = firstOrNull { it.value == value }?.dictations ?: 0
+
+/** An app and the profile it gets (C9). [automatic]: through the default, since it has none of its own. */
+data class ProfileApp(val packageName: String, val automatic: Boolean)
+
 /** A Dictionary term. */
 data class Term(val id: Long, val term: String)
