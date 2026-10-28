@@ -45,6 +45,7 @@ import com.victorpolitakis.pesto.ui.profiles.ProfilesRoute
 import com.victorpolitakis.pesto.ui.search.SearchRoute
 import com.victorpolitakis.pesto.ui.settings.SettingsRoute
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** The undo of a deletion, in the snackbar of the app (Δ15): it stays when the screen closes. */
@@ -89,6 +90,8 @@ fun PestoNavHost(
         }
     }
     LaunchedEffect(openSettings, navController) {
+        // The NavHost is in the content of the Scaffold, composed after this effect starts: wait for its graph.
+        navController.currentBackStackEntryFlow.first()
         openSettings.collect { section ->
             navController.navigate(Routes.Settings(section.name)) { launchSingleTop = true }
         }
