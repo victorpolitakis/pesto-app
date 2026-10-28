@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
@@ -29,19 +30,20 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
-/** Step 6: the bottom bar and the routes (Δ20), with placeholders in place of the screens (no Hilt here). */
+/** The bottom bar, the routes (Δ20) and the undo snackbar (Δ15), with placeholders in place of the screens (no Hilt here). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NavigationTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
     private lateinit var nav: NavHostController
+    private var restored = 0
 
     private fun show(openSettings: Flow<SettingsSection> = emptyFlow()) {
         rule.setContent {
             PestoTheme {
                 nav = rememberNavController()
-                PestoNavHost(openSettings, onRequest = {}, navController = nav) { controller, _ -> placeholders(controller) }
+                PestoNavHost(openSettings, onRequest = {}, navController = nav) { controller, undo -> placeholders(controller, undo) }
             }
         }
     }
@@ -51,7 +53,7 @@ class NavigationTest {
         Text(tag, Modifier.testTag(tag).clickable(onClick = onClick))
     }
 
-    private fun NavGraphBuilder.placeholders(controller: NavHostController) {
+    private fun NavGraphBuilder.placeholders(controller: NavHostController, undo: UndoSnackbar) {
         composable<Routes.Home> { Placeholder("route_home") { controller.navigate(Routes.Analytics) } }
         composable<Routes.Profiles> { Placeholder("route_profiles") { controller.navigate(Routes.ProfileDetail("mail")) } }
         composable<Routes.Dictionary> { Placeholder("route_dictionary") }
@@ -61,7 +63,13 @@ class NavigationTest {
         composable<Routes.Analytics> { Placeholder("route_analytics") }
         composable<Routes.Apps> { Placeholder("route_apps") }
         composable<Routes.ProfileDetail> { Placeholder("route_profile_detail") }
-        composable<Routes.HistoryDetail> { Placeholder("route_history_detail") }
+        composable<Routes.HistoryDetail> {
+            // As the real screen: it closes, and the snackbar of the app offers the undo.
+            Placeholder("route_history_detail") {
+                controller.popBackStack()
+                undo.show("deleted") { restored++ }
+            }
+        }
     }
 
     @Test
@@ -102,6 +110,30 @@ class NavigationTest {
         rule.onNodeWithTag("route_history_detail").assertIsDisplayed()
         rule.runOnIdle { assertEquals(7L, nav.currentBackStackEntry!!.toRoute<Routes.HistoryDetail>().id) }
         rule.onNodeWithTag("bottom_bar").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a deletion is undone from the snackbar, after its screen closed`() {
+        show()
+        rule.onNodeWithTag("tab_history").performClick()
+        rule.onNodeWithTag("route_history").performClick()
+        rule.onNodeWithTag("route_history_detail").performClick()
+        rule.onNodeWithTag("route_history").assertIsDisplayed()
+        rule.onNodeWithText("deleted").assertIsDisplayed()
+        rule.onNodeWithText("Αναίρεση").performClick()
+        rule.runOnIdle { assertEquals(1, restored) }
+        rule.onNodeWithText("deleted").assertDoesNotExist()
+    }
+
+    @Test
+    fun `without the undo, the deletion stays`() {
+        show()
+        rule.onNodeWithTag("tab_history").performClick()
+        rule.onNodeWithTag("route_history").performClick()
+        rule.onNodeWithTag("route_history_detail").performClick()
+        rule.mainClock.advanceTimeBy(10_000)
+        rule.onNodeWithText("deleted").assertDoesNotExist()
+        rule.runOnIdle { assertEquals(0, restored) }
     }
 
     @Test

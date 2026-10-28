@@ -69,6 +69,55 @@
     <string name="title_apps">Εφαρμογές</string>
     <string name="title_dictation">Υπαγόρευση</string>
     <string name="skeleton">Τα δεδομένα αυτής της οθόνης έρχονται στο επόμενο βήμα.</string>
+    <string name="copy">Αντιγραφή</string>
+    <string name="delete">Διαγραφή</string>
+    <string name="value_none">—</string>
+    <string name="app_none">Χωρίς εφαρμογή</string>
+    <plurals name="dictations">
+        <item quantity="one">%d υπαγόρευση</item>
+        <item quantity="other">%d υπαγορεύσεις</item>
+    </plurals>
+    <plurals name="words">
+        <item quantity="one">%d λέξη</item>
+        <item quantity="other">%d λέξεις</item>
+    </plurals>
+    <!-- Δ23: «Σήμερα, 18:26», «Χθες, 18:26». -->
+    <string name="time_today">Σήμερα</string>
+    <string name="time_yesterday">Χθες</string>
+
+    <!-- C8: History, its detail, and Search. TODO(phase 6): the texts, with the design. -->
+    <string name="history_empty">Καμία υπαγόρευση ακόμα. Πάτησε το κουμπί του Pesto πάνω στο πληκτρολόγιο.</string>
+    <string name="history_deleted">Η υπαγόρευση διαγράφηκε</string>
+    <string name="history_detail_gone">Η υπαγόρευση δεν υπάρχει πια</string>
+    <string name="search_hint">Αναζήτηση στις υπαγορεύσεις</string>
+    <string name="search_too_short">Γράψε τουλάχιστον 2 γράμματα</string>
+    <string name="search_none">Δεν βρέθηκε τίποτα</string>
+    <plurals name="results">
+        <item quantity="one">%d αποτέλεσμα</item>
+        <item quantity="other">%d αποτελέσματα</item>
+    </plurals>
+    <!-- The record of one dictation, for the data check of phase 4. -->
+    <string name="detail_data">Στοιχεία της εγγραφής</string>
+    <string name="detail_raw_text">Κείμενο της αναγνώρισης (πριν από το profile)</string>
+    <string name="detail_app">Εφαρμογή</string>
+    <string name="detail_input_type">Τύπος πεδίου</string>
+    <string name="detail_started">Έναρξη (πάτημα)</string>
+    <string name="detail_ended">Τέλος (εισαγωγή)</string>
+    <string name="detail_duration">Διάρκεια</string>
+    <string name="detail_audio">Ήχος</string>
+    <string name="detail_words">Λέξεις που ειπώθηκαν</string>
+    <string name="detail_output_words">Λέξεις του κειμένου</string>
+    <string name="detail_wpm">Λέξεις το λεπτό</string>
+    <string name="detail_profile">Profile</string>
+    <string name="detail_fallback">Λόγος για το σκέτο κείμενο</string>
+    <string name="detail_end_reason">Πώς τελείωσε</string>
+    <string name="detail_insert_method">Μέθοδος εισαγωγής</string>
+    <string name="detail_stt_ms">Χρόνος αναγνώρισης</string>
+    <string name="detail_llm_ms">Χρόνος του profile</string>
+    <string name="detail_total_ms">Συνολικός χρόνος</string>
+    <string name="value_seconds">%1$.1f s</string>
+    <string name="value_ms">%1$d ms</string>
+    <string name="value_with_id">%1$s (%2$s)</string>
 
     <!-- C11: the languages of the speech recognition (Δ14). -->
     <string name="language_el">Ελληνικά</string>

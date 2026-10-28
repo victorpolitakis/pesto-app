@@ -37,12 +37,12 @@ import com.victorpolitakis.pesto.ui.AppIcons
 import com.victorpolitakis.pesto.ui.analytics.AnalyticsScreen
 import com.victorpolitakis.pesto.ui.apps.AppsScreen
 import com.victorpolitakis.pesto.ui.dictionary.DictionaryScreen
-import com.victorpolitakis.pesto.ui.history.HistoryDetailScreen
-import com.victorpolitakis.pesto.ui.history.HistoryScreen
+import com.victorpolitakis.pesto.ui.history.HistoryDetailRoute
+import com.victorpolitakis.pesto.ui.history.HistoryRoute
 import com.victorpolitakis.pesto.ui.home.HomeScreen
 import com.victorpolitakis.pesto.ui.profiles.ProfileDetailScreen
 import com.victorpolitakis.pesto.ui.profiles.ProfilesScreen
-import com.victorpolitakis.pesto.ui.search.SearchScreen
+import com.victorpolitakis.pesto.ui.search.SearchRoute
 import com.victorpolitakis.pesto.ui.settings.SettingsScreen
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -120,20 +120,27 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
     }
     composable<Routes.Profiles> { ProfilesScreen(onOpenProfile = { id -> nav.navigate(Routes.ProfileDetail(id)) }) }
     composable<Routes.Dictionary> { DictionaryScreen() }
-    composable<Routes.History> { HistoryScreen(onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) }) }
+    composable<Routes.History> { HistoryRoute(onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) }) }
     composable<Routes.Settings> { entry ->
         SettingsScreen(section = entry.toRoute<Routes.Settings>().section, onBack = { nav.popBackStack() })
     }
     composable<Routes.Search> {
-        SearchScreen(onBack = { nav.popBackStack() }, onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) })
+        SearchRoute(onBack = { nav.popBackStack() }, onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) })
     }
     composable<Routes.Analytics> { AnalyticsScreen(onBack = { nav.popBackStack() }) }
     composable<Routes.Apps> { AppsScreen(onBack = { nav.popBackStack() }) }
     composable<Routes.ProfileDetail> { entry ->
         ProfileDetailScreen(id = entry.toRoute<Routes.ProfileDetail>().id, onBack = { nav.popBackStack() })
     }
-    composable<Routes.HistoryDetail> { entry ->
-        HistoryDetailScreen(id = entry.toRoute<Routes.HistoryDetail>().id, onBack = { nav.popBackStack() })
+    composable<Routes.HistoryDetail> {
+        val deleted = stringResource(R.string.history_deleted)
+        HistoryDetailRoute(
+            onBack = { nav.popBackStack() },
+            onDeleted = { restore ->
+                nav.popBackStack()
+                undo.show(deleted, restore)
+            },
+        )
     }
 }
 
