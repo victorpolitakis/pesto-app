@@ -1,6 +1,7 @@
 package com.victorpolitakis.pesto.util
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -34,6 +35,12 @@ object RelativeDate {
         val at = Instant.ofEpochMilli(time).atZone(zone)
         return at.format(DateTimeFormatter.ofPattern(if (is24h) "d MMM yyyy, HH:mm:ss" else "d MMM yyyy, h:mm:ss a", GREEK))
     }
+
+    /** A day of the bars of Analytics, for TalkBack: «Τρίτη 27 Οκτ». */
+    fun day(date: LocalDate): String = date.format(DateTimeFormatter.ofPattern("EEEE d MMM", GREEK))
+
+    /** The short name of its weekday, under a bar: «Τρί». */
+    fun weekday(date: LocalDate): String = date.dayOfWeek.getDisplayName(TextStyle.SHORT, GREEK)
 
     private fun clock(time: Long, zone: ZoneId, is24h: Boolean): String =
         Instant.ofEpochMilli(time).atZone(zone).format(DateTimeFormatter.ofPattern(if (is24h) "HH:mm" else "h:mm a", GREEK))

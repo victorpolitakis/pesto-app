@@ -166,6 +166,49 @@
     <string name="profile_app_automatic">Αυτόματα, ως προεπιλογή</string>
     <string name="profile_gone">Αυτό το προφίλ δεν υπάρχει πια</string>
 
+    <!-- C10: Home, after the sketch. TODO(phase 6): the texts, with the design. -->
+    <string name="cd_chatbot">Βοηθός</string>
+    <string name="stat_minutes_saved">Λεπτά που κέρδισες</string>
+    <!-- Δ8: the screen says what the minutes are counted against. -->
+    <string name="stat_minutes_saved_note">σε σχέση με %1$d λέξεις/λεπτό πληκτρολόγηση</string>
+    <string name="stat_words_week">Λέξεις αυτή την εβδομάδα</string>
+    <string name="stat_dictations">Φορές χρήσης</string>
+    <string name="stat_wpm">Λέξεις το λεπτό (WPM)</string>
+    <string name="stat_today">σήμερα: %1$s</string>
+    <string name="cd_page">Σελίδα %1$d από %2$d</string>
+    <string name="home_add_styles">Προσθήκη ύφους</string>
+    <string name="home_edit">Επεξεργασία</string>
+    <string name="home_languages">Γλώσσες</string>
+    <string name="home_more">Περισσότερα</string>
+    <string name="home_more_soon">Σύντομα, νέες επιλογές</string>
+    <string name="home_recent">Τελευταίες υπαγορεύσεις</string>
+    <string name="home_all">Όλες</string>
+    <string name="value_int">%1$,d</string>
+    <string name="value_decimal">%1$.1f</string>
+
+    <!-- C10: Apps. -->
+    <string name="apps_empty">Καμία εφαρμογή ακόμα. Μια εφαρμογή εμφανίζεται εδώ μετά την πρώτη υπαγόρευση σε αυτήν.</string>
+    <string name="apps_usage">%1$s · τελευταία %2$s</string>
+    <string name="apps_automatic">Αυτόματο (%1$s)</string>
+    <string name="apps_automatic_option">Αυτόματο: η προεπιλογή (%1$s)</string>
+
+    <!-- C10: Analytics. -->
+    <string name="analytics_empty">Κανένα στατιστικό ακόμα. Οι αριθμοί βγαίνουν από το Ιστορικό, μετά την πρώτη υπαγόρευση.</string>
+    <string name="analytics_totals">Σύνολα</string>
+    <string name="analytics_words">Λέξεις</string>
+    <string name="analytics_dictations">Υπαγορεύσεις</string>
+    <string name="analytics_speech_minutes">Λεπτά ομιλίας</string>
+    <string name="analytics_per_day">Λέξεις ανά μέρα</string>
+    <plurals name="days">
+        <item quantity="one">%d μέρα</item>
+        <item quantity="other">%d μέρες</item>
+    </plurals>
+    <string name="cd_day_bar">%1$s: %2$s, %3$s</string>
+    <string name="analytics_per_app">Ανά εφαρμογή</string>
+    <string name="analytics_per_profile">Ανά προφίλ</string>
+    <string name="analytics_reliability">Αξιοπιστία</string>
+    <string name="analytics_no_fallback">Κανένας: το προφίλ εφαρμόστηκε</string>
+
     <!-- C11: the languages of the speech recognition (Δ14). -->
     <string name="language_el">Ελληνικά</string>
     <string name="language_en">Αγγλικά</string>

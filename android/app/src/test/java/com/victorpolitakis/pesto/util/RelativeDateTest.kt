@@ -3,6 +3,7 @@ package com.victorpolitakis.pesto.util
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -51,6 +52,13 @@ class RelativeDateTest {
     fun `the day is the local one`() {
         // 23:30 UTC on Tuesday is 01:30 on Wednesday in Athens (UTC+2 after the end of summer time).
         assertEquals("Σήμερα, 01:30", format(at(2026, 10, 27, 23, 30), zone = ZoneId.of("Europe/Athens")))
+    }
+
+    @Test
+    fun `the days of the bars of Analytics`() {
+        assertEquals("Τρίτη 27 Οκτ", RelativeDate.day(LocalDate.of(2026, 10, 27)))
+        assertEquals("Τρί", RelativeDate.weekday(LocalDate.of(2026, 10, 27)))
+        assertEquals("Κυρ", RelativeDate.weekday(LocalDate.of(2026, 10, 25)))
     }
 
     @Test
