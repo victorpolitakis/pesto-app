@@ -53,11 +53,11 @@ data class HistoryDetailState(
     val loading: Boolean = true,
 )
 
-/** [onDeleted]: the dictation is gone; what it gets puts it back (the undo of the snackbar, Δ15). */
+/** After a deletion the screen closes, and [offerUndo] gets what puts the dictation back (the snackbar of the app, Δ15). */
 @Composable
 fun HistoryDetailRoute(
     onBack: () -> Unit,
-    onDeleted: (undo: suspend () -> Unit) -> Unit,
+    offerUndo: (undo: suspend () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryDetailViewModel = hiltViewModel(),
 ) {
@@ -68,7 +68,13 @@ fun HistoryDetailRoute(
         state,
         onBack = onBack,
         onCopy = { state.detail?.let { copy(context, it.text) } },
-        onDelete = { scope.launch { viewModel.delete()?.let(onDeleted) } },
+        onDelete = {
+            scope.launch {
+                val restore = viewModel.delete() ?: return@launch
+                offerUndo(restore)
+                onBack()
+            }
+        },
         modifier = modifier,
     )
 }

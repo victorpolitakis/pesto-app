@@ -36,7 +36,7 @@ import com.victorpolitakis.pesto.permissions.Requirement
 import com.victorpolitakis.pesto.ui.AppIcons
 import com.victorpolitakis.pesto.ui.analytics.AnalyticsScreen
 import com.victorpolitakis.pesto.ui.apps.AppsScreen
-import com.victorpolitakis.pesto.ui.dictionary.DictionaryScreen
+import com.victorpolitakis.pesto.ui.dictionary.DictionaryRoute
 import com.victorpolitakis.pesto.ui.history.HistoryDetailRoute
 import com.victorpolitakis.pesto.ui.history.HistoryRoute
 import com.victorpolitakis.pesto.ui.home.HomeScreen
@@ -119,7 +119,10 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
         )
     }
     composable<Routes.Profiles> { ProfilesScreen(onOpenProfile = { id -> nav.navigate(Routes.ProfileDetail(id)) }) }
-    composable<Routes.Dictionary> { DictionaryScreen() }
+    composable<Routes.Dictionary> {
+        val deleted = stringResource(R.string.term_deleted)
+        DictionaryRoute(offerUndo = { restore -> undo.show(deleted, restore) })
+    }
     composable<Routes.History> { HistoryRoute(onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) }) }
     composable<Routes.Settings> { entry ->
         SettingsScreen(section = entry.toRoute<Routes.Settings>().section, onBack = { nav.popBackStack() })
@@ -134,13 +137,7 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
     }
     composable<Routes.HistoryDetail> {
         val deleted = stringResource(R.string.history_deleted)
-        HistoryDetailRoute(
-            onBack = { nav.popBackStack() },
-            onDeleted = { restore ->
-                nav.popBackStack()
-                undo.show(deleted, restore)
-            },
-        )
+        HistoryDetailRoute(onBack = { nav.popBackStack() }, offerUndo = { restore -> undo.show(deleted, restore) })
     }
 }
 

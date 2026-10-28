@@ -119,6 +119,33 @@
     <string name="value_ms">%1$d ms</string>
     <string name="value_with_id">%1$s (%2$s)</string>
 
+    <!-- C2: the Dictionary. TODO(phase 6): the texts, with the design. -->
+    <plurals name="terms">
+        <item quantity="one">%d όρος</item>
+        <item quantity="other">%d όροι</item>
+    </plurals>
+    <string name="dictionary_remaining">Απομένουν %1$,d από %2$,d χαρακτήρες</string>
+    <string name="dictionary_empty">Κανένας όρος ακόμα. Πρόσθεσε ονόματα και λέξεις που η αναγνώριση γράφει λάθος, όπως ένα επώνυμο.</string>
+    <string name="dictionary_full">Δεν χωράει άλλος όρος. Σβήσε ή μίκρυνε κάποιον.</string>
+    <string name="term_new">Νέος όρος</string>
+    <string name="term_edit">Αλλαγή όρου</string>
+    <string name="term_label">Όρος</string>
+    <string name="term_duplicate">Ο όρος υπάρχει ήδη</string>
+    <string name="term_empty">Γράψε έναν όρο</string>
+    <string name="term_too_long">Δεν χωράει στο όριο των χαρακτήρων</string>
+    <plurals name="term_left">
+        <item quantity="one">Απομένει %d χαρακτήρας</item>
+        <item quantity="other">Απομένουν %d χαρακτήρες</item>
+    </plurals>
+    <plurals name="term_over">
+        <item quantity="one">Δεν χωράει: %d χαρακτήρας πάνω από το όριο</item>
+        <item quantity="other">Δεν χωράει: %d χαρακτήρες πάνω από το όριο</item>
+    </plurals>
+    <string name="term_deleted">Ο όρος διαγράφηκε</string>
+    <string name="cd_delete_term">Διαγραφή του όρου %1$s</string>
+    <string name="save">Αποθήκευση</string>
+    <string name="cancel">Ακύρωση</string>
+
     <!-- C11: the languages of the speech recognition (Δ14). -->
     <string name="language_el">Ελληνικά</string>
     <string name="language_en">Αγγλικά</string>

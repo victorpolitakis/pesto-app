@@ -65,6 +65,13 @@ class DictionaryRepositoryTest {
     }
 
     @Test
+    fun `a pasted term is saved on one line`() = runTest {
+        assertEquals(TermResult.OK, dictionary.add(" IBM\nApp \t Connect "))
+        assertEquals(listOf("IBM App Connect"), terms())
+        assertEquals(TermResult.DUPLICATE, dictionary.add("ibm app connect"))
+    }
+
+    @Test
     fun `a term costs like in the backend`() {
         assertEquals(10, DictionaryRepository.cost("Πολιτάκης"))
         // Python counts code points: an emoji is one character there.

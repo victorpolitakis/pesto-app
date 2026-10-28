@@ -35,6 +35,7 @@ object AppIcons {
     @DrawableRes val More = R.drawable.ic_more
 
     @DrawableRes val Back = R.drawable.ic_back
+    @DrawableRes val Add = R.drawable.ic_add
     @DrawableRes val Copy = R.drawable.ic_copy
     @DrawableRes val Delete = R.drawable.ic_delete
 

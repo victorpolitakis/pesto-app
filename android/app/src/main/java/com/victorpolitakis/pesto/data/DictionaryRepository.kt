@@ -23,7 +23,7 @@ class DictionaryRepository @Inject constructor(private val dao: TermDao, private
     val terms: Flow<List<Term>> = dao.all().map { rows -> rows.map { Term(it.id, it.term) } }
 
     suspend fun add(term: String): TermResult {
-        val t = term.trim()
+        val t = clean(term)
         if (t.isEmpty()) return TermResult.EMPTY
         val key = SearchText.normalize(t)
         val all = dao.list()
@@ -33,7 +33,7 @@ class DictionaryRepository @Inject constructor(private val dao: TermDao, private
     }
 
     suspend fun update(id: Long, term: String): TermResult {
-        val t = term.trim()
+        val t = clean(term)
         if (t.isEmpty()) return TermResult.EMPTY
         val key = SearchText.normalize(t)
         val all = dao.list()
@@ -54,6 +54,11 @@ class DictionaryRepository @Inject constructor(private val dao: TermDao, private
     }
 
     companion object {
+        private val SPACES = Regex("\\s+")
+
+        /** A term as it is saved: one line, single spaces (a pasted term can bring new lines). */
+        fun clean(term: String): String = term.trim().replace(SPACES, " ")
+
         /** What one term costs in the backend's limit: its characters (code points, like Python's len) and a separator. */
         fun cost(term: String): Int = term.codePointCount(0, term.length) + 1
 
