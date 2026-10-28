@@ -13,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
@@ -27,6 +29,9 @@ import org.junit.Assert.fail
 
 /** Half a pixel and more: rounding, not layout. */
 private const val TOLERANCE = 1f
+
+/** The smallest control a finger hits, as in Material and in ATF. */
+private val MIN_TOUCH_TARGET = 48.dp
 
 /**
  * Level 2: nothing goes off the sides of the screen or is cut at them, no text
@@ -45,7 +50,7 @@ fun ComposeTestRule.assertLayout() {
         // Cut at the top or the bottom is a list scrolling; at a side it is a layout that does not fit.
         val visible = node.boundsInRoot
         if (visible.height > 0f && visible.width < whole.width - TOLERANCE) problems += "cut at a side: ${node.describe()}"
-        if (SemanticsProperties.EditableText !in node.config && node.textLayout()?.didOverflowWidth == true) {
+        if (SemanticsProperties.EditableText !in node.config && node.textLayout()?.isCut() == true) {
             problems += "text wider than its box: ${node.describe()}"
         }
     }
@@ -79,11 +84,25 @@ fun ComposeTestRule.assertCenteredOnScreen(tag: String) {
 }
 
 /**
- * Level 3: the accessibility checks of Android (ATF) on the screen: touch
- * targets, a label on every control, and the rest of what ATF finds. After
- * this call they also run before every action of the test.
+ * Level 3: every control is at least 48dp on each side and has a label (a text
+ * or a contentDescription). Spike P2: under Robolectric the accessibility checks
+ * of Android (ATF) see a Compose screen as one view, with none of its nodes, so
+ * these two run on the semantics tree. ATF stays for the Android views, and after
+ * this call it also runs before every action of the test.
+ * TODO(phase 6): the ATF checks on an emulator, where they see the Compose nodes.
  */
 fun AndroidComposeTestRule<*, *>.assertAccessible() {
+    val problems = mutableListOf<String>()
+    val min = with(density) { MIN_TOUCH_TARGET.toPx() } - TOLERANCE
+    onRoot().fetchSemanticsNode().forEachOnScreen { node ->
+        // The whole layout node: Material keeps the clickable at 40dp and pads it to 48dp around it.
+        val target = node.layoutInfo
+        if (SemanticsActions.OnClick !in node.config || target.width == 0 || target.height == 0) return@forEachOnScreen
+        if (target.width < min || target.height < min) problems += "touch target under 48dp: ${node.describe()}"
+        val labels = listOf(SemanticsProperties.Text, SemanticsProperties.ContentDescription, SemanticsProperties.EditableText)
+        if (labels.none { it in node.config }) problems += "control without a label: ${node.describe()}"
+    }
+    if (problems.isNotEmpty()) fail(problems.distinct().joinToString("\n"))
     enableAccessibilityChecks()
     onRoot().tryPerformAccessibilityChecks()
 }
@@ -110,6 +129,16 @@ private fun SemanticsNode.textLayout(): TextLayoutResult? {
     val results = mutableListOf<TextLayoutResult>()
     action(results)
     return results.firstOrNull()
+}
+
+/**
+ * Text that does not fit: cut at its last line, or a line past the side of its box. Not
+ * didOverflowWidth, which is true for any text narrower than the space it was given. An
+ * ellipsis is a cut on purpose, so it passes.
+ */
+private fun TextLayoutResult.isCut(): Boolean {
+    if (layoutInput.overflow == TextOverflow.Ellipsis) return false
+    return didOverflowHeight || (0 until lineCount).any { getLineRight(it) > size.width + TOLERANCE }
 }
 
 private fun SemanticsNode.describe(): String =
