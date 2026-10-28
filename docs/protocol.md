@@ -58,6 +58,8 @@ Authorization: Bearer <PESTO_APP_TOKEN>
 
 Όλα τα πεδία εκτός από το `type` είναι προαιρετικά: `{"type": "start"}` σημαίνει ελληνικά + αγγλικά, χωρίς όρους, profile `raw`. Άγνωστο ή λάθος γραμμένο πεδίο δίνει `error` `bad_request`, ώστε τα λάθη να φαίνονται αμέσως.
 
+Τιμές του `field_context.input_type` (τις στέλνει το κινητό από τον τύπο του πεδίου, `FieldRules.inputTypeName` στο Android): `text`, `email` (διεύθυνση), `email_subject`, `short_message`, `long_message`, `person_name`, `postal_address`, `uri`, `web_edit`, `filter` (αναζήτηση), `number`, `phone`, `datetime`, `password`. Ό,τι άλλο στέλνεται ως `text`. Το `hint` το γράφει η εφαρμογή (ή μια ιστοσελίδα), άρα είναι κείμενο τρίτου, κομμένο στους 100 χαρακτήρες. Σε πεδία `password`, `number`, `phone` και `datetime` το κουμπί δεν εμφανίζεται, οπότε δεν φτάνουν ποτέ εδώ.
+
 ```json
 {"type": "pause"}
 {"type": "resume"}
