@@ -1,5 +1,5 @@
-import pesto_server
+from pesto_server import cli
 
 
 def test_smoke():
-    assert hasattr(pesto_server, "main")
+    assert callable(cli.main)

@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from conftest import TOKEN
+from conftest import DEVICE, TOKEN
 from fakes import FakeLlm, FakeSttFactory
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
@@ -93,3 +93,76 @@ def test_bad_message_mid_dictation_is_reported(client):
         message = json.loads(ws.receive_text())
         assert message["code"] == "bad_request"
         ws.send_text('{"type": "cancel"}')
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+def test_no_api_docs(client, path):
+    assert client.get(path).status_code == 404
+
+
+def test_pairing_gives_a_device_token_once(client, devices):
+    code = devices.new_code()
+    body = {"code": code, "device_name": DEVICE}
+    response = client.post("/v1/pair", json=body)
+    assert response.status_code == 200
+    assert devices.is_valid(response.json()["token"])
+    assert client.post("/v1/pair", json=body).status_code == 403
+
+
+@pytest.mark.parametrize("active", [True, False])
+def test_pairing_with_a_wrong_code(client, devices, active):
+    if active:
+        devices.new_code()
+    response = client.post("/v1/pair", json={"code": "nope", "device_name": DEVICE})
+    assert response.status_code == 403
+    assert response.json() == {"detail": "wrong code"}
+    assert devices.devices() == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"code": "12345678"},
+        {"code": "12345678", "device_name": "x", "admin": True},
+        {"code": "1" * 33, "device_name": "x"},
+    ],
+)
+def test_pairing_rejects_a_bad_body(client, body):
+    assert client.post("/v1/pair", json=body).status_code == 422
+
+
+def test_a_device_token_dictates(client, device_token):
+    headers = {"Authorization": f"Bearer {device_token}"}
+    with client.websocket_connect("/v1/dictate", headers=headers) as ws:
+        ws.send_text('{"type": "start"}')
+        assert json.loads(ws.receive_text())["type"] == "ready"
+        ws.send_text('{"type": "cancel"}')
+
+
+def test_a_revoked_device_token_is_refused(client, devices, device_token):
+    devices.revoke(DEVICE)
+    headers = {"Authorization": f"Bearer {device_token}"}
+    with pytest.raises(WebSocketDisconnect) as e:
+        with client.websocket_connect("/v1/dictate", headers=headers) as ws:
+            ws.receive_text()
+    assert e.value.code == 1008
+
+
+def test_without_an_app_token_only_devices_dictate(settings, device_token):
+    settings.pesto_app_token = ""
+    app = create_app(
+        settings,
+        stt_factory=FakeSttFactory(["γεια"]),
+        provider=FakeLlm(),
+        limits=SessionLimits(tick_s=0.005),
+    )
+    with TestClient(app) as client:
+        with pytest.raises(WebSocketDisconnect) as e:
+            with client.websocket_connect("/v1/dictate?token=") as ws:
+                ws.receive_text()
+        assert e.value.code == 1008
+        headers = {"Authorization": f"Bearer {device_token}"}
+        with client.websocket_connect("/v1/dictate", headers=headers) as ws:
+            ws.send_text('{"type": "start"}')
+            assert json.loads(ws.receive_text())["type"] == "ready"
+            ws.send_text('{"type": "cancel"}')

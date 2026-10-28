@@ -55,7 +55,9 @@ class TextPipeline:
         self,
         transcript: str,
         profile_id: str,
-        field_context: FieldContext | None = None,  # for X2, not used yet
+        # TODO(X2): the hint of the field for the prompt. Third-party text: tags,
+        # spotlighting and new attacks for eval_injection.py first.
+        field_context: FieldContext | None = None,
     ) -> PipelineResult:
         profile = self.profiles[profile_id]
         if not profile.prompt or not transcript.strip():
@@ -63,6 +65,8 @@ class TextPipeline:
         if reason := input_guard(transcript):
             return PipelineResult(transcript, f"guard:{reason}")
         started = time.perf_counter()
+        # TODO(experimental): stream the text to the panel (llm_partial, from
+        # `claude -p --include-partial-messages`): ~0.4 s, mostly visual.
         try:
             result = await self._provider.rewrite(profile, build_prompt(transcript))
         except LlmError as e:

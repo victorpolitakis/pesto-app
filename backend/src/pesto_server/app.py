@@ -1,18 +1,19 @@
-"""FastAPI app: GET /health and the dictation WebSocket /v1/dictate."""
+"""FastAPI app: GET /health, POST /v1/pair and the dictation WebSocket /v1/dictate."""
 
 import asyncio
 import contextlib
 import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
 
 from .config import Settings
+from .devices import DeviceRegistry
 from .llm.claude_cli import ClaudeCodeCli, LlmProvider
 from .llm.profiles import load_profiles
 from .pipeline import TextPipeline
-from .protocol import Error, Start, client_message
+from .protocol import Error, PairRequest, PairResponse, Start, client_message
 from .session import DictationSession, InboxItem, SessionLimits
 from .stt import SonioxClient, SttConfig, SttFactory
 
@@ -39,14 +40,17 @@ def default_provider(settings: Settings) -> LlmProvider:
     )
 
 
-def token_ok(websocket: WebSocket, expected: str) -> bool:
-    if not expected:
-        return False
+def token_ok(websocket: WebSocket, app_token: str, devices: DeviceRegistry) -> bool:
+    """The token of a paired device (Δ24), or PESTO_APP_TOKEN for the Mac's tools."""
     header = websocket.headers.get("authorization", "")
     given = header.removeprefix("Bearer ").strip() or websocket.query_params.get(
         "token", ""
     )
-    return secrets.compare_digest(given.encode(), expected.encode())
+    if not given:
+        return False
+    if app_token and secrets.compare_digest(given.encode(), app_token.encode()):
+        return True
+    return devices.is_valid(given)
 
 
 def create_app(
@@ -55,11 +59,13 @@ def create_app(
     stt_factory: SttFactory | None = None,
     provider: LlmProvider | None = None,
     limits: SessionLimits | None = None,
+    devices: DeviceRegistry | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
     stt_factory = stt_factory or soniox_factory(settings)
     provider = provider or default_provider(settings)
     limits = limits or SessionLimits.from_settings(settings)
+    devices = devices or DeviceRegistry(settings.devices_path)
     pipeline = TextPipeline(load_profiles(settings.profiles_dir), provider)
 
     @asynccontextmanager
@@ -67,16 +73,36 @@ def create_app(
         yield
         await provider.aclose()
 
-    app = FastAPI(title="pesto-server", lifespan=lifespan)
+    # No /docs, /redoc or /openapi.json (Δ16): nothing about the API without a token.
+    app = FastAPI(
+        title="pesto-server",
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     app.state.pipeline = pipeline
 
     @app.get("/health")
     async def health() -> dict:
         return {"status": "ok"}
 
+    @app.post("/v1/pair")
+    async def pair(request: PairRequest) -> PairResponse:
+        # No token here, that is the point; without an active code it is always
+        # wrong (docs/protocol.md). async on purpose: the file is read and written
+        # without a pause in the event loop, so parallel attempts share no count.
+        token = devices.pair(request.code, request.device_name)
+        if token is None:
+            raise HTTPException(status_code=403, detail="wrong code")
+        return PairResponse(token=token)
+
+    # TODO(X13): POST /v1/rewrite for a playground on the phone: one profile at a
+    # time, the same TextPipeline, no metrics and no History.
+
     @app.websocket("/v1/dictate")
     async def dictate(websocket: WebSocket) -> None:
-        if not token_ok(websocket, settings.pesto_app_token):
+        if not token_ok(websocket, settings.pesto_app_token, devices):
             await websocket.close(code=_CLOSE_POLICY)
             return
         await websocket.accept()

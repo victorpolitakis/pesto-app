@@ -12,7 +12,10 @@ class Settings(BaseSettings):
 
     host: str = "127.0.0.1"
     port: int = 8000
+    # Only for the tools on the Mac (ws_client.py). The phones have their own
+    # tokens, from pairing, in devices_path (Δ24).
     pesto_app_token: str = ""
+    devices_path: Path = BACKEND_DIR / "data" / "devices.json"
 
     soniox_api_key: str = ""
     soniox_url: str = "wss://stt-rt.soniox.com/transcribe-websocket"
@@ -20,7 +23,7 @@ class Settings(BaseSettings):
 
     claude_cmd: list[str] = ["claude"]
     llm_model: str = "claude-haiku-5-5"
-    llm_effort: str = "medium"  # low until 26/10, see docs/eval.md
+    llm_effort: str = "medium"  # since 26/10, low before (docs/eval.md)
     llm_timeout_s: float = 10.0
     llm_warm_idle_s: float = 15 * 60
 

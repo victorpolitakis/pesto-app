@@ -29,6 +29,10 @@ class FieldContext(_ClientMessage):
 
 
 class Start(_ClientMessage):
+    # TODO(X13): optional custom_profile {name, prompt} and style, with character
+    # limits, and bad_request when they come with a ready-made profile.
+    # TODO(later): neutral field names (Δ25): language_hints is Soniox's word. Here,
+    # in docs/protocol.md and in Protocol.kt together, with the tests of both sides.
     type: Literal["start"]
     language_hints: list[str] = ["el", "en"]
     language_hints_strict: bool = False
@@ -70,6 +74,19 @@ ClientMessage = Annotated[
     Start | Pause | Resume | Finalize | Cancel, Field(discriminator="type")
 ]
 client_message = TypeAdapter(ClientMessage)
+
+
+class PairRequest(_ClientMessage):
+    """POST /v1/pair: the code of `pesto-server pair` and a name for the device."""
+
+    code: str = Field(max_length=32)
+    device_name: str = Field(max_length=100)
+
+
+class PairResponse(BaseModel):
+    """The token of the device. The backend keeps only its sha256."""
+
+    token: str
 
 
 class Ready(BaseModel):

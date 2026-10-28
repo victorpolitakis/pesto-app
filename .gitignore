@@ -15,6 +15,9 @@ __pycache__/
 #local metrics (numbers only)
 backend/logs/
 
+#paired devices (hashes of their tokens)
+backend/data/
+
 #android
 android/local.properties
 build/

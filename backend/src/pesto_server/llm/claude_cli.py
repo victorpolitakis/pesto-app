@@ -183,6 +183,9 @@ class ClaudeCodeCli:
         self._idle_task: asyncio.Task | None = None
 
     async def warm(self, profile: Profile) -> None:
+        # TODO(X13): with my own profiles or a style, the key of the spare becomes
+        # sha256(final system prompt + effort) instead of the id, here and in
+        # rewrite(): else a profile with a new style gets the old prompt.
         async with self._lock:
             spare = self._spare
             if spare and spare.profile_id == profile.id and spare.alive:
