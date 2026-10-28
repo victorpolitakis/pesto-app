@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Level 1 of the UI validation: Android Lint and compose-lints (Slack), run on CI
+  with lintDebug. An error fails the build. Every change of severity here says why.
+-->
+<lint>
+    <!-- The versions are chosen and pinned on purpose (Δ1): an update is a decision, not a lint finding. -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+</lint>

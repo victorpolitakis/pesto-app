@@ -47,6 +47,25 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
+
+    // Robolectric: resources and assets in the JVM tests (Compose screens, Room).
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
+    // The exported schemas, for the MigrationTestHelper of the JVM tests.
+    sourceSets {
+        getByName("test").assets.srcDir("$projectDir/schemas")
+    }
+
+    // Level 1 of the UI validation: Android Lint with compose-lints, on CI. No baseline:
+    // a finding is fixed, or goes to lint-baseline.xml with the reason next to it.
+    lint {
+        lintConfig = file("lint.xml")
+        abortOnError = true
+    }
 }
 
 // Room schemas in git, so phase 3 can write migrations.
@@ -59,14 +78,17 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation.compose)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
+    lintChecks(libs.compose.lint.checks)
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
 
     implementation(libs.datastore.preferences)
@@ -80,4 +102,13 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric: Room, DataStore and Compose screens on the JVM, without an emulator.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.room.testing)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.compose.ui.test.junit4.accessibility)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
