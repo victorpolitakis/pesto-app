@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Smallest mic button: the Android minimum touch target. -->
+    <dimen name="mic_button_min">48dp</dimen>
+    <dimen name="panel_padding">16dp</dimen>
+    <dimen name="panel_action">56dp</dimen>
+</resources>

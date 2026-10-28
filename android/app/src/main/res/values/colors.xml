@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Temporary colors. TODO(phase 6): the real theme. -->
+<resources>
+    <color name="pesto_primary">#FF2E7D32</color>
+    <color name="pesto_on_primary">#FFFFFFFF</color>
+    <color name="pesto_panel">#FFF4F6F1</color>
+    <color name="pesto_on_panel">#FF1B1F1A</color>
+</resources>

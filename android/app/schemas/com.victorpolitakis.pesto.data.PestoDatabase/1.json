@@ -1,0 +1,117 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "c9ad404eaba84f6f19748b2f901e2108",
+    "entities": [
+      {
+        "tableName": "dictations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `created_at` INTEGER NOT NULL, `package` TEXT, `input_type` TEXT, `hint` TEXT, `single_line` INTEGER, `raw_text` TEXT NOT NULL, `text` TEXT NOT NULL, `profile` TEXT NOT NULL, `fallback_reason` TEXT, `end_reason` TEXT NOT NULL, `audio_s` REAL, `words` INTEGER, `stt_ms` INTEGER, `llm_ms` INTEGER, `total_ms` INTEGER, `insert_method` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageName",
+            "columnName": "package",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "inputType",
+            "columnName": "input_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hint",
+            "columnName": "hint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "singleLine",
+            "columnName": "single_line",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "rawText",
+            "columnName": "raw_text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profile",
+            "columnName": "profile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fallbackReason",
+            "columnName": "fallback_reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "endReason",
+            "columnName": "end_reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "audioS",
+            "columnName": "audio_s",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "words",
+            "columnName": "words",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sttMs",
+            "columnName": "stt_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "llmMs",
+            "columnName": "llm_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "totalMs",
+            "columnName": "total_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "insertMethod",
+            "columnName": "insert_method",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c9ad404eaba84f6f19748b2f901e2108')"
+    ]
+  }
+}

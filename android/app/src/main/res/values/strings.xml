@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pesto</string>
+
+    <string name="service_label">Pesto</string>
+    <string name="service_description">Το Pesto δείχνει ένα κουμπί μικροφώνου πάνω στο keyboard σου και γράφει στο πεδίο ό,τι υπαγορεύεις. Διαβάζει μόνο το πεδίο που έχει focus. Δεν εμφανίζεται σε πεδία κωδικού.</string>
+
+    <!-- Listening panel. TODO(phase 6): texts and look of the states are improved with the design. -->
+    <string name="status_connecting">Σύνδεση…</string>
+    <string name="status_listening">Ακούω…</string>
+    <string name="status_paused">Παύση</string>
+    <string name="status_finishing">Ολοκλήρωση…</string>
+    <!-- TODO(phase 6): temporary error messages, improved with the design. -->
+    <string name="error_no_server">Δεν βρέθηκε ο server</string>
+    <string name="error_mic_blocked">Το μικρόφωνο είναι μπλοκαρισμένο</string>
+    <string name="error_generic">Η υπαγόρευση απέτυχε</string>
+    <string name="copied_to_clipboard">Αντιγράφηκε, κάνε επικόλληση</string>
+
+    <!-- C3 and the status page. TODO(phase 3): Home replaces the status page. -->
+    <string name="req_microphone">Μικρόφωνο</string>
+    <string name="req_accessibility">Accessibility service του Pesto</string>
+    <string name="req_battery">Εξαίρεση από τη βελτιστοποίηση μπαταρίας</string>
+    <string name="req_overlay">Εμφάνιση πάνω από άλλες εφαρμογές (μόνο debug, Δ16)</string>
+    <string name="toast_enable_accessibility">Ενεργοποίησε το Pesto στις Downloaded apps</string>
+    <string name="toast_restart_accessibility">Το Pesto είναι ενεργό αλλά δεν τρέχει: απενεργοποίησέ το και ενεργοποίησέ το ξανά</string>
+    <string name="toast_mic_settings">Δώσε την άδεια μικροφώνου από τις Άδειες της εφαρμογής</string>
+    <string name="status_backend">Backend: %1$s</string>
+    <string name="status_dictations">Υπαγορεύσεις στη βάση: %1$d</string>
+
+    <string name="cd_mic">Υπαγόρευση με το Pesto</string>
+    <string name="cd_cancel">Ακύρωση</string>
+    <string name="cd_pause">Παύση</string>
+    <string name="cd_resume">Συνέχεια</string>
+    <string name="cd_finish">Τέλος</string>
+</resources>

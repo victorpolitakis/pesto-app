@@ -14,3 +14,14 @@ __pycache__/
 
 #local metrics (numbers only)
 backend/logs/
+
+#android
+android/local.properties
+build/
+.gradle/
+.kotlin/
+*.apk
+.idea/
+captures/
+*.hprof
+android-spike/
