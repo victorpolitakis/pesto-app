@@ -14,6 +14,9 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.AppDisplay
 import com.victorpolitakis.pesto.data.Totals
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertCenteredOnScreen
+import com.victorpolitakis.pesto.ui.assertLayout
 import com.victorpolitakis.pesto.ui.components.DictationRowUi
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
@@ -134,5 +137,21 @@ class HomeScreenTest {
         rule.onNodeWithTag("home_page_minutes_saved").assertIsDisplayed()
         rule.onNodeWithTag("home_apps").assertTextContains("Εφαρμογές")
         rule.onNodeWithTag("empty").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with long Greek names and large numbers`() {
+        val long = AppDisplay("gr.example", "Μια εφαρμογή με πάρα πολύ μεγάλο ελληνικό όνομα που δεν χωράει σε μία γραμμή", null)
+        show(
+            state.copy(
+                totals = state.totals.copy(minutesSaved = 54_321.0, wordsThisWeek = 1_234_567, dictations = 98_765),
+                topApps = List(3) { long },
+                recent = List(5) { i -> DictationRowUi(i + 1L, long, System.currentTimeMillis(), 12_345) },
+            ),
+        )
+        rule.assertLayout()
+        rule.assertCenteredOnScreen("home_value")
+        rule.assertCenteredOnScreen("home_dots")
+        rule.assertAccessible()
     }
 }

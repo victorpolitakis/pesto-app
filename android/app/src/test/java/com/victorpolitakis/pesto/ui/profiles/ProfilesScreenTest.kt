@@ -12,6 +12,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.ProfilesCatalog
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
+import com.victorpolitakis.pesto.ui.assertLeftAligned
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -65,5 +68,15 @@ class ProfilesScreenTest {
         rule.onNodeWithTag("profile_list").performScrollToNode(hasTestTag("profile_chatter"))
         rule.onNodeWithTag("profile_chatter").performClick()
         assertEquals("chatter", opened)
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with large numbers`() {
+        rule.setContent {
+            PestoTheme { ProfilesScreen(ProfilesState(rows.map { it.copy(apps = 1234, dictations = 56789) }, loading = false), onOpenProfile = {}) }
+        }
+        rule.assertLayout()
+        rule.assertLeftAligned("profile_raw", "profile_note")
+        rule.assertAccessible()
     }
 }

@@ -8,6 +8,9 @@ import com.victorpolitakis.pesto.dictation.Bounds
  * Finds the keyboard's own mic key, which the Pesto button covers (C4).
  * On Gboard (spike, 28/10): id `key_pos_header_power_key`, description
  * "Use voice typing".
+ * TODO(phase 6): the position of the button (Δ19). On the POCO (28/10) it at times does not cover
+ * the mic key, comes late after a paste, or covers another spot: first the logs of Pesto/Button
+ * (the bounds at every «shown») in those cases, with the POCO at hand.
  */
 object MicAnchor {
     private val descriptions = listOf("voice typing", "voice input", "φωνητικ", "μικρόφων", "microphone")

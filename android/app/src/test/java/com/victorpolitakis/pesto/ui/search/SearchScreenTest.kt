@@ -14,6 +14,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.AppDisplay
 import com.victorpolitakis.pesto.data.Snippet
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
 import com.victorpolitakis.pesto.ui.components.DictationRowUi
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
@@ -74,5 +76,18 @@ class SearchScreenTest {
             PestoTheme { SearchScreen("καλημέρα", SearchState("καλημ", listOf(hit)), onQueryChange = {}, onBack = {}, onOpenDictation = {}) }
         }
         rule.onNodeWithTag("search_results").assertDoesNotExist()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with long Greek results`() {
+        val long = SearchHit(
+            DictationRowUi(5, AppDisplay("gr.example", "Μια εφαρμογή με πάρα πολύ μεγάλο ελληνικό όνομα που δεν χωράει σε μία γραμμή", null), System.currentTimeMillis(), 12_345),
+            Snippet("Καλημέρα σε όλους, ".repeat(12), listOf(0..7)),
+        )
+        rule.setContent {
+            PestoTheme { SearchScreen("καλημ", SearchState("καλημ", listOf(hit, long)), onQueryChange = {}, onBack = {}, onOpenDictation = {}) }
+        }
+        rule.assertLayout()
+        rule.assertAccessible()
     }
 }

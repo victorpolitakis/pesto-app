@@ -16,6 +16,8 @@ import com.victorpolitakis.pesto.data.AppDisplay
 import com.victorpolitakis.pesto.data.DayCount
 import com.victorpolitakis.pesto.data.KeyCount
 import com.victorpolitakis.pesto.data.Totals
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -99,5 +101,19 @@ class AnalyticsScreenTest {
     fun `no numbers before the first dictation`() {
         show(AnalyticsState(loading = false))
         rule.onNodeWithTag("empty").assertIsDisplayed()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, the month, with long Greek names`() {
+        val long = AppDisplay("gr.example", "Μια εφαρμογή με πάρα πολύ μεγάλο ελληνικό όνομα που δεν χωράει σε μία γραμμή", null)
+        show(
+            state.copy(
+                totals = state.totals.copy(words = 1_234_567, dictations = 98_765),
+                apps = List(3) { i -> AppCount(long.copy(packageName = "gr.example.app$i"), 12_345) },
+            ),
+            period = AnalyticsState.MONTH,
+        )
+        rule.assertLayout()
+        rule.assertAccessible()
     }
 }

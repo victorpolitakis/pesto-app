@@ -17,6 +17,9 @@ import com.victorpolitakis.pesto.FakeTermDao
 import com.victorpolitakis.pesto.data.DictionaryRepository
 import com.victorpolitakis.pesto.data.NOW
 import com.victorpolitakis.pesto.protocol.MAX_TERMS_CHARS
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
+import com.victorpolitakis.pesto.ui.assertLeftAligned
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -133,5 +136,17 @@ class DictionaryScreenTest {
         show()
         rule.onNodeWithTag("add_term").assertIsNotEnabled()
         rule.onNodeWithTag("dictionary_full").assertIsDisplayed()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with long Greek terms`() {
+        runBlocking {
+            dictionary.add("Ένας πολύ μεγάλος ελληνικός όρος με πολλές λέξεις που δεν χωράει σε μία γραμμή")
+            dictionary.add("Πολιτάκης")
+        }
+        show()
+        rule.assertLayout()
+        rule.assertLeftAligned("term_1", "term_2")
+        rule.assertAccessible()
     }
 }

@@ -9,12 +9,17 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.nav.SettingsSection
 import com.victorpolitakis.pesto.permissions.Requirement
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
+import com.victorpolitakis.pesto.ui.assertLeftAligned
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -209,5 +214,16 @@ class SettingsScreenTest {
         scrollTo("version")
         rule.onNodeWithTag("version").assertTextContains("0.3.0 (1)")
         rule.onNodeWithTag("build_type").assertTextContains("debug")
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, at the top and at the pairing`() {
+        show(state.copy(isXiaomi = true, pairing = PairingStatus.WRONG_CODE), code = "1234")
+        rule.assertLayout()
+        rule.assertLeftAligned("primary_language", "secondary_language")
+        rule.assertAccessible()
+        scrollTo("pair")
+        rule.assertLayout()
+        rule.onRoot().tryPerformAccessibilityChecks()
     }
 }

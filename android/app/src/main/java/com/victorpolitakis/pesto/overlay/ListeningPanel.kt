@@ -97,7 +97,7 @@ private fun Action(@DrawableRes icon: Int, description: Int, tag: String, onClic
 }
 
 @Composable
-private fun Wave(levels: List<Float>, modifier: Modifier) {
+private fun Wave(levels: List<Float>, modifier: Modifier = Modifier) {
     val color = MaterialTheme.colorScheme.primary
     Canvas(modifier) {
         if (levels.isEmpty()) return@Canvas

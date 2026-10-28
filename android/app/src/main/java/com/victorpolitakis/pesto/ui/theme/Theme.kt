@@ -6,7 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.colorResource
 import com.victorpolitakis.pesto.R
 
-/** Minimal theme from res/values/colors.xml. TODO(phase 6): the real design. */
+/**
+ * Minimal theme from res/values/colors.xml. TODO(phase 6): the real design.
+ * TODO(X11): themes, chosen in a Themes section of Settings (SettingsRepository) and applied here.
+ */
 @Composable
 fun PestoTheme(content: @Composable () -> Unit) {
     MaterialTheme(

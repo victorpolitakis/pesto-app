@@ -10,6 +10,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.AppDisplay
 import com.victorpolitakis.pesto.data.DictationDetail
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
+import com.victorpolitakis.pesto.ui.assertLeftAligned
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -78,5 +81,13 @@ class HistoryDetailScreenTest {
         show(d = null)
         rule.onNodeWithTag("empty").assertIsDisplayed()
         rule.onNodeWithTag("copy").assertDoesNotExist()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with a long Greek text`() {
+        show(detail.copy(text = "Καλημέρα σε όλους και ευχαριστώ για την υπομονή σας. ".repeat(20)))
+        rule.assertLayout()
+        rule.assertLeftAligned("dictation_text", "record")
+        rule.assertAccessible()
     }
 }

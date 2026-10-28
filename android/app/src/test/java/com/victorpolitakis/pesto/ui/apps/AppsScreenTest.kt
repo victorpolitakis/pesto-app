@@ -11,6 +11,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.AppDisplay
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
+import com.victorpolitakis.pesto.ui.assertLeftAligned
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -76,5 +79,14 @@ class AppsScreenTest {
     fun `no app before the first dictation`() {
         show(AppsState(loading = false))
         rule.onNodeWithTag("empty").assertIsDisplayed()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with long Greek names`() {
+        val long = List(6) { i -> AppRow(AppDisplay("gr.example.app$i", "Μια εφαρμογή με πάρα πολύ μεγάλο ελληνικό όνομα που δεν χωράει σε μία γραμμή $i", null), 12_345, 0, if (i % 2 == 0) null else "professional") }
+        show(AppsState(long, defaultProfile = "professional", loading = false))
+        rule.assertLayout()
+        rule.assertLeftAligned("app_gr.example.app0", "app_gr.example.app1")
+        rule.assertAccessible()
     }
 }

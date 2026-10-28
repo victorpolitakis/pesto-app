@@ -32,4 +32,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6 # also validates the Gradle wrapper
         with:
           cache-provider: basic # actions/cache, not the default proprietary cache with its own terms of use
-      - run: ./gradlew assembleDebug testDebugUnitTest --console=plain
+      # UI validation: level 1 is lintDebug (Android Lint with compose-lints); levels 2 and 3 are in the
+      # Robolectric tests of every screen (layout on the semantics tree, accessibility checks).
+      - run: ./gradlew assembleDebug testDebugUnitTest lintDebug --console=plain

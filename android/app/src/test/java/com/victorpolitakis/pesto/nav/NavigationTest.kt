@@ -2,6 +2,7 @@ package com.victorpolitakis.pesto.nav
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -19,6 +21,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -48,9 +52,10 @@ class NavigationTest {
         }
     }
 
+    /** A screen in a line, as big as a finger, so the bar can be checked at levels 2 and 3. */
     @Composable
     private fun Placeholder(tag: String, onClick: () -> Unit = {}) {
-        Text(tag, Modifier.testTag(tag).clickable(onClick = onClick))
+        Text(tag, Modifier.testTag(tag).clickable(onClick = onClick).sizeIn(minWidth = 48.dp, minHeight = 48.dp))
     }
 
     private fun NavGraphBuilder.placeholders(controller: NavHostController, undo: UndoSnackbar) {
@@ -134,6 +139,13 @@ class NavigationTest {
         rule.mainClock.advanceTimeBy(10_000)
         rule.onNodeWithText("deleted").assertDoesNotExist()
         rule.runOnIdle { assertEquals(0, restored) }
+    }
+
+    @Test
+    fun `levels 2 and 3 - the bottom bar`() {
+        show()
+        rule.assertLayout()
+        rule.assertAccessible()
     }
 
     @Test

@@ -10,6 +10,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.AppDisplay
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
+import com.victorpolitakis.pesto.ui.assertLeftAligned
 import com.victorpolitakis.pesto.ui.components.DictationRowUi
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
@@ -87,5 +90,15 @@ class HistoryScreenTest {
             }
         }
         rule.onNodeWithTag("dictation_1").assertIsDisplayed()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with long Greek names`() {
+        rule.setContent {
+            PestoTheme { HistoryScreen(HistoryState(rows(6, "Μια εφαρμογή με πάρα πολύ μεγάλο ελληνικό όνομα που δεν χωράει σε μία γραμμή"), total = 6, loading = false), onOpenDictation = {}, onLoadMore = {}) }
+        }
+        rule.assertLayout()
+        rule.assertLeftAligned("dictation_1", "dictation_2", "dictation_3")
+        rule.assertAccessible()
     }
 }

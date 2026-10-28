@@ -10,6 +10,8 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.AppDisplay
 import com.victorpolitakis.pesto.data.ProfilesCatalog
+import com.victorpolitakis.pesto.ui.assertAccessible
+import com.victorpolitakis.pesto.ui.assertLayout
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -72,5 +74,13 @@ class ProfileDetailScreenTest {
         show(ProfileDetailState(profile = null, loading = false))
         rule.onNodeWithTag("empty").assertIsDisplayed()
         rule.onNodeWithTag("set_default").assertDoesNotExist()
+    }
+
+    @Test
+    fun `levels 2 and 3 - layout and accessibility, with long Greek app names`() {
+        val many = List(6) { i -> ProfileAppUi(AppDisplay("gr.example.app$i", "Μια εφαρμογή με πάρα πολύ μεγάλο ελληνικό όνομα που δεν χωράει σε μία γραμμή $i", null), i % 2 == 0) }
+        show(ProfileDetailState(chatter, isDefault = false, apps = many, dictations = 56789, loading = false))
+        rule.assertLayout()
+        rule.assertAccessible()
     }
 }
