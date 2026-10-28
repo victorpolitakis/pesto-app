@@ -10,8 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * filled here in Kotlin, row by row, before the index is built.
  *
  * The SQL of the new tables is what Room 2.8.5 writes for the entities: the
- * same text as in the exported schema.
- * TODO(phase 3): check the SQL against app/schemas/…/2.json after the first build.
+ * same text as in app/schemas/…/2.json, and MigrationTest checks it.
  */
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {

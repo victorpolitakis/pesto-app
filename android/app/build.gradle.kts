@@ -53,12 +53,15 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Robolectric on SDK 36 reaches into jdk.internal.access, closed by default on JDK 21.
+            all { it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED") }
         }
     }
 
-    // The exported schemas, for the MigrationTestHelper of the JVM tests.
+    // The exported schemas, for the MigrationTestHelper of the JVM tests. Robolectric reads
+    // the assets of the app, not of the test source set, so they go to the debug build only.
     sourceSets {
-        getByName("test").assets.srcDir("$projectDir/schemas")
+        getByName("debug").assets.srcDir("$projectDir/schemas")
     }
 
     // Level 1 of the UI validation: Android Lint with compose-lints, on CI. No baseline:

@@ -1,0 +1,242 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "2be266d13f576631b7a02481b4f758de",
+    "entities": [
+      {
+        "tableName": "dictations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `created_at` INTEGER NOT NULL, `package` TEXT, `input_type` TEXT, `hint` TEXT, `single_line` INTEGER, `raw_text` TEXT NOT NULL, `text` TEXT NOT NULL, `profile` TEXT NOT NULL, `fallback_reason` TEXT, `end_reason` TEXT NOT NULL, `audio_s` REAL, `words` INTEGER, `stt_ms` INTEGER, `llm_ms` INTEGER, `total_ms` INTEGER, `insert_method` TEXT NOT NULL, `search_text` TEXT NOT NULL DEFAULT '', `raw_words` INTEGER NOT NULL DEFAULT 0, `started_at` INTEGER NOT NULL DEFAULT 0)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageName",
+            "columnName": "package",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "inputType",
+            "columnName": "input_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hint",
+            "columnName": "hint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "singleLine",
+            "columnName": "single_line",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "rawText",
+            "columnName": "raw_text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profile",
+            "columnName": "profile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fallbackReason",
+            "columnName": "fallback_reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "endReason",
+            "columnName": "end_reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "audioS",
+            "columnName": "audio_s",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "words",
+            "columnName": "words",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sttMs",
+            "columnName": "stt_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "llmMs",
+            "columnName": "llm_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "totalMs",
+            "columnName": "total_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "insertMethod",
+            "columnName": "insert_method",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "searchText",
+            "columnName": "search_text",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "rawWords",
+            "columnName": "raw_words",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "dictations_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`search_text` TEXT NOT NULL, tokenize=unicode61, content=`dictations`)",
+        "fields": [
+          {
+            "fieldPath": "searchText",
+            "columnName": "search_text",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "unicode61",
+          "tokenizerArgs": [],
+          "contentTable": "dictations",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_dictations_fts_BEFORE_UPDATE BEFORE UPDATE ON `dictations` BEGIN DELETE FROM `dictations_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_dictations_fts_BEFORE_DELETE BEFORE DELETE ON `dictations` BEGIN DELETE FROM `dictations_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_dictations_fts_AFTER_UPDATE AFTER UPDATE ON `dictations` BEGIN INSERT INTO `dictations_fts`(`docid`, `search_text`) VALUES (NEW.`rowid`, NEW.`search_text`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_dictations_fts_AFTER_INSERT AFTER INSERT ON `dictations` BEGIN INSERT INTO `dictations_fts`(`docid`, `search_text`) VALUES (NEW.`rowid`, NEW.`search_text`); END"
+        ]
+      },
+      {
+        "tableName": "terms",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `term` TEXT NOT NULL, `term_key` TEXT NOT NULL, `created_at` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "term",
+            "columnName": "term",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "termKey",
+            "columnName": "term_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_terms_term_key",
+            "unique": true,
+            "columnNames": [
+              "term_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_terms_term_key` ON `${TABLE_NAME}` (`term_key`)"
+          }
+        ]
+      },
+      {
+        "tableName": "app_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`package` TEXT NOT NULL, `profile_id` TEXT NOT NULL, PRIMARY KEY(`package`))",
+        "fields": [
+          {
+            "fieldPath": "packageName",
+            "columnName": "package",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "package"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2be266d13f576631b7a02481b4f758de')"
+    ]
+  }
+}
