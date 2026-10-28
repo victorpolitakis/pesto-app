@@ -6,10 +6,10 @@ import org.junit.Test
 /** The 10 scenarios of PLAN_phase-2.md (section 4, C5). `|` = the cursor. */
 class TextJoinerTest {
     /** Applies the join to "before|after" and returns the field with the new cursor. */
-    private fun dictate(field: String, dictated: String): String {
+    private fun dictate(field: String, dictated: String, terms: Set<String> = emptySet()): String {
         val before = field.substringBefore('|')
         val after = field.substringAfter('|')
-        val piece = TextJoiner.join(before, after, dictated)
+        val piece = TextJoiner.join(before, after, dictated, terms)
         return before + piece + "|" + after
     }
 
@@ -40,6 +40,14 @@ class TextJoinerTest {
         assertEquals("Στείλε το API|", dictate("Στείλε το|", "API"))
         assertEquals("Πήρα iPhone|", dictate("Πήρα|", "iPhone"))
     }
+
+    @Test fun `a Dictionary term keeps its capital mid-sentence`() {
+        assertEquals("Είπε ο Πολιτάκης|", dictate("Είπε ο|", "Πολιτάκης", terms = setOf("Πολιτάκης")))
+        assertEquals("Είπε ο πολιτάκης|", dictate("Είπε ο|", "Πολιτάκης"))
+        assertEquals("Με τον Victor Politakis.|", dictate("Με τον|", "Victor Politakis.", terms = setOf("Victor Politakis")))
+    }
+
+    @Test fun `only a whole term counts`() = assertEquals("Είπε ο πολιτάκης|", dictate("Είπε ο|", "Πολιτάκης", terms = setOf("Πολ")))
 
     @Test fun `no space after an opening bracket`() = assertEquals("(καλά)|", dictate("(|", "Καλά)"))
 

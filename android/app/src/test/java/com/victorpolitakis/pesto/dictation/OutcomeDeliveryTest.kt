@@ -16,11 +16,13 @@ import org.junit.Test
 
 class OutcomeDeliveryTest {
     private val inserted = mutableListOf<String>()
+    private var terms = emptySet<String>()
     private val recorded = mutableListOf<NewDictation>()
     private val delivery = OutcomeDelivery(
         inserter = object : Inserter {
-            override suspend fun insert(text: String): InsertMethod {
+            override suspend fun insert(text: String, terms: Set<String>): InsertMethod {
                 inserted += text
+                this@OutcomeDeliveryTest.terms = terms
                 return InsertMethod.COMMIT_TEXT
             }
         },
@@ -41,6 +43,12 @@ class OutcomeDeliveryTest {
         delivery.deliver(Outcome.Done(final), start, startedAt = 900L)
         assertEquals(listOf("Καλημέρα."), inserted)
         assertEquals(listOf(NewDictation(1000L, 900L, whatsapp, "chatter", final, null, "COMMIT_TEXT")), recorded)
+    }
+
+    @Test
+    fun `the terms of the dictation go to the insertion, which keeps their case`() = runTest {
+        delivery.deliver(Outcome.Done(final), start.copy(terms = listOf("Πολιτάκης", "Pesto")), 900L)
+        assertEquals(setOf("Πολιτάκης", "Pesto"), terms)
     }
 
     @Test

@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import com.victorpolitakis.pesto.R
 import com.victorpolitakis.pesto.backend.Incoming
+import com.victorpolitakis.pesto.data.ProfilesCatalog
 import com.victorpolitakis.pesto.dictation.Bounds
 import com.victorpolitakis.pesto.dictation.DictationController
 import com.victorpolitakis.pesto.dictation.DictationUi
@@ -25,12 +26,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-/** What the panel shows, already turned into what Compose draws. */
+/** What the panel shows, already turned into what Compose draws. [profile]: the name of the profile asked for (C9). */
 private data class PanelState(
     @param:StringRes val status: Int = R.string.status_connecting,
     val text: String = "",
     val levels: List<Float> = emptyList(),
     val paused: Boolean = false,
+    @param:StringRes val profile: Int? = null,
 )
 
 /**
@@ -90,6 +92,7 @@ class OverlayController(
                 val c = controller()
                 ListeningPanel(
                     status = stringResource(state.status),
+                    profile = state.profile?.let { stringResource(it) },
                     text = state.text,
                     levels = state.levels,
                     paused = state.paused,
@@ -111,7 +114,13 @@ class OverlayController(
                     is DictationUi.Active -> {
                         levels.addLast(ui.live.level)
                         while (levels.size > 32) levels.removeFirst()
-                        panelState.value = PanelState(statusOf(ui.live.phase), ui.live.text, levels.toList(), ui.live.phase == Phase.PAUSED)
+                        panelState.value = PanelState(
+                            statusOf(ui.live.phase),
+                            ui.live.text,
+                            levels.toList(),
+                            ui.live.phase == Phase.PAUSED,
+                            ProfilesCatalog.find(ui.live.profile)?.name,
+                        )
                     }
                     is DictationUi.Ended -> {
                         val error = errorOf(ui.outcome)

@@ -8,5 +8,6 @@ enum class InsertMethod { COMMIT_TEXT, SET_TEXT, CLIPBOARD }
  * (accessibility); X1 extends it. Never presses send: it only writes text.
  */
 interface Inserter {
-    suspend fun insert(text: String): InsertMethod
+    /** [terms]: the Dictionary terms of the dictation, which keep their case (TextJoiner). */
+    suspend fun insert(text: String, terms: Set<String>): InsertMethod
 }

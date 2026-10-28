@@ -15,6 +15,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import okio.ByteString
 import okio.ByteString.Companion.toByteString
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,16 +37,24 @@ sealed interface Incoming {
 interface BackendConnection {
     val incoming: ReceiveChannel<Incoming>
 
+    /** Sends [start], then what was sent before it: start is always the first message. Once. */
+    fun start(start: Start)
+
+    /** Before [start], it waits in a queue. */
     fun sendAudio(pcm: ByteArray)
 
+    /** Before [start], it waits in a queue. */
     fun send(message: ClientMessage)
 
     fun close()
 }
 
 interface BackendClient {
-    /** Opens the WebSocket and sends [start] first. Audio may be sent at once: it is queued. */
-    fun open(start: Start): BackendConnection
+    /**
+     * Opens the WebSocket at once, so it connects while the start message is still
+     * being built (StartBuilder). Audio may be sent at once: it is queued.
+     */
+    fun open(): BackendConnection
 }
 
 /** The URL of the dictation. The token is not here: each phone has its own, from pairing (Δ24). */
@@ -58,7 +67,7 @@ class OkHttpBackendClient @Inject constructor(
     private val tokens: DeviceTokenStore,
     @param:AppScope private val scope: CoroutineScope,
 ) : BackendClient {
-    override fun open(start: Start): BackendConnection {
+    override fun open(): BackendConnection {
         val incoming = Channel<Incoming>(Channel.UNLIMITED)
         // Not paired: nothing to connect with. C3 asks for the code at the next open of the app.
         val token = tokens.current() ?: return Refused(incoming)
@@ -91,28 +100,51 @@ class OkHttpBackendClient @Inject constructor(
                 incoming.close()
             }
         })
-        // OkHttp queues messages until the socket opens, so start is always first.
-        socket.send(encode(start))
-        return object : BackendConnection {
-            override val incoming: ReceiveChannel<Incoming> = incoming
-
-            override fun sendAudio(pcm: ByteArray) {
-                socket.send(pcm.toByteString())
-            }
-
-            override fun send(message: ClientMessage) {
-                socket.send(encode(message))
-            }
-
-            override fun close() {
-                socket.close(1000, null)
-            }
-        }
+        return Queued(socket, incoming)
     }
 
     /** Revoked (or never valid): C3 asks for a new pairing at the next open of the app. */
     private fun forgetToken() {
         scope.launch { tokens.clear() }
+    }
+
+    /**
+     * Holds audio and messages until [start], since the backend takes nothing else as
+     * the first message. From then on OkHttp queues them until the socket opens.
+     */
+    private class Queued(private val socket: WebSocket, override val incoming: ReceiveChannel<Incoming>) : BackendConnection {
+        private val waiting = mutableListOf<Any>()
+        private var started = false
+
+        @Synchronized
+        override fun start(start: Start) {
+            if (started) return
+            started = true
+            socket.send(encode(start))
+            waiting.forEach(::write)
+            waiting.clear()
+        }
+
+        @Synchronized
+        override fun sendAudio(pcm: ByteArray) = queue(pcm.toByteString())
+
+        @Synchronized
+        override fun send(message: ClientMessage) = queue(encode(message))
+
+        override fun close() {
+            socket.close(1000, null)
+        }
+
+        private fun queue(item: Any) {
+            if (started) write(item) else waiting += item
+        }
+
+        private fun write(item: Any) {
+            when (item) {
+                is String -> socket.send(item)
+                is ByteString -> socket.send(item)
+            }
+        }
     }
 
     /** A connection that was never opened: it only says why. */
@@ -121,6 +153,8 @@ class OkHttpBackendClient @Inject constructor(
             incoming.trySend(Incoming.Closed(failure = true, reason = Incoming.UNAUTHORIZED))
             incoming.close()
         }
+
+        override fun start(start: Start) = Unit
 
         override fun sendAudio(pcm: ByteArray) = Unit
 

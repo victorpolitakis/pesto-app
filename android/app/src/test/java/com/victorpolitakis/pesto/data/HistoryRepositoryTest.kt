@@ -111,7 +111,7 @@ class HistoryRepositoryTest {
     fun `incognito leaves no row`() = runTest {
         val delivery = OutcomeDelivery(
             inserter = object : Inserter {
-                override suspend fun insert(text: String) = InsertMethod.COMMIT_TEXT
+                override suspend fun insert(text: String, terms: Set<String>) = InsertMethod.COMMIT_TEXT
             },
             history = history,
             log = FakeLog(),

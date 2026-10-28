@@ -17,6 +17,7 @@ import com.victorpolitakis.pesto.util.PestoLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,8 +27,13 @@ import kotlinx.coroutines.launch
 
 enum class Phase { CONNECTING, LISTENING, PAUSED, FINISHING }
 
-/** What the listening panel shows. */
-data class LiveState(val phase: Phase = Phase.CONNECTING, val text: String = "", val level: Float = 0f)
+/** What the listening panel shows. [profile]: the id the start message asked for, once it is built (C9). */
+data class LiveState(
+    val phase: Phase = Phase.CONNECTING,
+    val text: String = "",
+    val level: Float = 0f,
+    val profile: String? = null,
+)
 
 /** How a dictation ended. */
 sealed interface Outcome {
@@ -45,10 +51,12 @@ sealed interface Outcome {
 /**
  * One dictation: microphone → backend → outcome. Knows nothing about who
  * started it (button today, tile or gesture later) or about the overlay.
- * Recording starts at once; audio before `ready` is queued by the backend.
+ * Recording and the connection start at once. The [start] message follows as
+ * soon as it is built (StartBuilder): audio before it waits in the connection,
+ * audio before `ready` in the backend.
  */
 class DictationSession(
-    private val start: Start,
+    private val start: Deferred<Start>,
     private val audio: AudioCapture,
     private val backend: BackendClient,
     private val scope: CoroutineScope,
@@ -67,10 +75,19 @@ class DictationSession(
 
     fun start() {
         startedAt = clock()
-        val conn = backend.open(start)
+        val conn = backend.open()
         connection = conn
         startAudio()
+        scope.launch { sendStart(conn) }
         scope.launch { receive(conn) }
+    }
+
+    private suspend fun sendStart(conn: BackendConnection) {
+        val s = start.await()
+        if (outcome.isCompleted) return
+        log.perf("tap_to_start", clock() - startedAt)
+        _state.update { it.copy(profile = s.profile) }
+        conn.start(s)
     }
 
     fun pause() {

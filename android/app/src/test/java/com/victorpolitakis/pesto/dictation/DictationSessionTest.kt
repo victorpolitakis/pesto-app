@@ -14,12 +14,15 @@ import com.victorpolitakis.pesto.protocol.Ready
 import com.victorpolitakis.pesto.protocol.Resume
 import com.victorpolitakis.pesto.protocol.Start
 import com.victorpolitakis.pesto.protocol.Stats
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -32,8 +35,9 @@ class DictationSessionTest {
     private fun final(text: String, endReason: String = "user") =
         Final(rawText = text, text = text, profile = "raw", endReason = endReason, stats = Stats(1.0, 2, 150, null, 160))
 
-    private fun TestScope.session(): DictationSession =
-        DictationSession(Start(), audio, backend, backgroundScope, log, clock = { testScheduler.currentTime }).also {
+    /** [start]: built at once by default; a test that wants it later completes it itself. */
+    private fun TestScope.session(start: Deferred<Start> = CompletableDeferred(Start())): DictationSession =
+        DictationSession(start, audio, backend, backgroundScope, log, clock = { testScheduler.currentTime }).also {
             it.start()
             runCurrent()
         }
@@ -48,7 +52,7 @@ class DictationSessionTest {
         backend.server(Ready)
         backend.server(Partial("Καλημέρα ", "Γιώργο"))
         runCurrent()
-        assertEquals(LiveState(Phase.LISTENING, "Καλημέρα Γιώργο", 0.5f), s.state.value)
+        assertEquals(LiveState(Phase.LISTENING, "Καλημέρα Γιώργο", 0.5f, profile = "raw"), s.state.value)
 
         s.finish()
         backend.server(final("Καλημέρα Γιώργο."))
@@ -66,6 +70,41 @@ class DictationSessionTest {
         audio.speak()
         runCurrent()
         assertEquals(2, audioSent())
+    }
+
+    @Test
+    fun `the start message comes later and is still first, the audio waits for it`() = runTest {
+        val start = CompletableDeferred<Start>()
+        val s = session(start)
+        audio.speak()
+        runCurrent()
+        assertTrue(audio.open) // the microphone did not wait
+        assertNull(backend.start)
+        assertEquals(emptyList<Any>(), backend.sent)
+
+        start.complete(Start(profile = "mail"))
+        runCurrent()
+        assertEquals("mail", backend.start?.profile)
+        assertEquals(listOf<Any>("audio"), backend.sent)
+        assertEquals("mail", s.state.value.profile)
+        assertTrue("perf tap_to_start" in log.lines)
+
+        audio.speak()
+        runCurrent()
+        assertEquals(listOf<Any>("audio", "audio"), backend.sent)
+    }
+
+    @Test
+    fun `a cancel before the start message sends nothing at all`() = runTest {
+        val start = CompletableDeferred<Start>()
+        val s = session(start)
+        s.cancel()
+        start.complete(Start())
+        runCurrent()
+        assertEquals(Outcome.Cancelled, s.outcome.await())
+        assertNull(backend.start)
+        assertEquals(emptyList<Any>(), backend.sent)
+        assertTrue(backend.closed)
     }
 
     @Test

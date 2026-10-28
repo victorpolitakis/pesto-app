@@ -38,11 +38,15 @@ import com.victorpolitakis.pesto.ui.theme.PestoTheme
 
 /**
  * The panel that covers the keyboard while dictating. Stateless: everything
- * comes in as parameters. TODO(phase 6): wave, buttons and states get the real design.
+ * comes in as parameters. [profile]: the name of the profile this dictation
+ * asked for, next to the status, so it is clear what will happen (C9).
+ * TODO(phase 6): wave, buttons and states get the real design.
+ * TODO(phase 6): change the profile from the panel (C9), with the design.
  */
 @Composable
 fun ListeningPanel(
     status: String,
+    profile: String?,
     text: String,
     levels: List<Float>,
     paused: Boolean,
@@ -62,7 +66,11 @@ fun ListeningPanel(
     ) {
         Wave(levels, Modifier.fillMaxWidth().height(40.dp).testTag("wave"))
         Spacer(Modifier.height(8.dp))
-        Text(status, style = MaterialTheme.typography.labelLarge, modifier = Modifier.testTag("status"))
+        Text(
+            if (profile == null) status else stringResource(R.string.panel_status_profile, status, profile),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.testTag("status"),
+        )
         Spacer(Modifier.height(8.dp))
         Text(
             text,
@@ -110,14 +118,14 @@ private fun Wave(levels: List<Float>, modifier: Modifier) {
 @Preview(heightDp = 300)
 @Composable
 private fun PanelEmptyPreview() {
-    PestoTheme { ListeningPanel("Σύνδεση…", "", emptyList(), false, {}, {}, {}) }
+    PestoTheme { ListeningPanel("Σύνδεση…", null, "", emptyList(), false, {}, {}, {}) }
 }
 
 @Preview(heightDp = 300)
 @Composable
 private fun PanelPreview() {
     PestoTheme {
-        ListeningPanel("Ακούω…", "Καλημέρα Γιώργο, το meeting πάει", List(24) { (it % 7) / 7f }, false, {}, {}, {})
+        ListeningPanel("Ακούω…", "Email", "Καλημέρα Γιώργο, το meeting πάει", List(24) { (it % 7) / 7f }, false, {}, {}, {})
     }
 }
 
@@ -127,6 +135,7 @@ private fun PanelLongGreekPreview() {
     PestoTheme {
         ListeningPanel(
             "Παύση",
+            "Επαγγελματικό",
             "Καλημέρα σε όλους, ".repeat(40) + "και ευχαριστώ για την υπομονή σας.",
             List(24) { 0f },
             true, {}, {}, {},

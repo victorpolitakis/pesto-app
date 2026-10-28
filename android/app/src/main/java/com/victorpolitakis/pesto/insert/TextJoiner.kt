@@ -9,7 +9,8 @@ object TextJoiner {
     private const val NO_SPACE_BEFORE = ".,;:!?…)]}»"
     private const val SENTENCE_END = ".!?…"
 
-    fun join(before: String, after: String, dictated: String): String {
+    /** [terms]: the Dictionary terms of this dictation (C2), which keep their case mid-sentence. */
+    fun join(before: String, after: String, dictated: String, terms: Set<String> = emptySet()): String {
         val text = dictated.trim()
         if (text.isEmpty()) return ""
         val spaceBefore = before.isNotEmpty() &&
@@ -17,7 +18,7 @@ object TextJoiner {
             before.last() !in NO_SPACE_AFTER &&
             text.first() !in NO_SPACE_BEFORE
         val spaceAfter = after.isNotEmpty() && after.first().isLetterOrDigit()
-        val cased = if (text.first().isLetter()) recase(text, sentenceStart(before)) else text
+        val cased = if (text.first().isLetter()) recase(text, sentenceStart(before), terms) else text
         return (if (spaceBefore) " " else "") + cased + (if (spaceAfter) " " else "")
     }
 
@@ -34,15 +35,21 @@ object TextJoiner {
     /**
      * Capital only at the start of a sentence (Δ6). Soniox capitalises the
      * first word of every dictation, which is wrong mid-sentence. Acronyms
-     * ("API") and words with a capital inside ("iPhone", "McDonald") are kept.
+     * ("API"), words with a capital inside ("iPhone", "McDonald") and the
+     * Dictionary terms («Πολιτάκης», also of more words) are kept.
      */
-    private fun recase(text: String, start: Boolean): String {
+    private fun recase(text: String, start: Boolean, terms: Set<String>): String {
         val first = text.first()
         if (start) return first.uppercaseChar() + text.substring(1)
         val word = text.takeWhile { it.isLetter() }
         val acronym = word.length > 1 && word.all { it.isUpperCase() }
         val innerCapital = word.drop(1).any { it.isUpperCase() }
-        return if (acronym || innerCapital) text else first.lowercaseChar() + text.substring(1)
+        return if (acronym || innerCapital || startsWithTerm(text, terms)) text else first.lowercaseChar() + text.substring(1)
+    }
+
+    /** The text starts with a whole term, as it is written in the Dictionary. */
+    private fun startsWithTerm(text: String, terms: Set<String>): Boolean = terms.any { term ->
+        term.isNotEmpty() && text.startsWith(term) && (text.length == term.length || !text[term.length].isLetterOrDigit())
     }
 
     private fun isMostlyGreek(text: String): Boolean {

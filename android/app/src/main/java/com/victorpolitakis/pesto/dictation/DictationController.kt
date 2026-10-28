@@ -11,6 +11,7 @@ import com.victorpolitakis.pesto.util.WallClock
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +19,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Who started a dictation. Today only the button (and the debug test screen). */
+/**
+ * Who started a dictation. Today only the button (and the debug test screen).
+ * TODO(X6, X10): TILE and GESTURE, which start with field = null (Quick Settings tile with Notes, a gesture).
+ */
 enum class Trigger { BUTTON, TEST }
 
 /** What the overlay shows. */
@@ -39,6 +43,7 @@ sealed interface DictationUi {
 class DictationController @Inject constructor(
     private val audio: Lazy<AudioCapture>,
     private val backend: Lazy<BackendClient>,
+    private val starts: Lazy<StartBuilder>,
     private val delivery: Lazy<Delivery>,
     private val clock: WallClock,
     private val log: PestoLog,
@@ -58,7 +63,9 @@ class DictationController @Inject constructor(
         val context = field?.let(FieldRules::context) ?: FieldContext()
         val startedAt = clock.now()
         log.event("start trigger=$trigger package=${context.packageName} input_type=${context.inputType}")
-        val start = Start(fieldContext = context)
+        // The microphone and the connection do not wait for the start message (C9, Δ5).
+        val builder = starts.get()
+        val start = scope.async { builder.build(context) }
         val s = DictationSession(start, audio.get(), backend.get(), scope, log, SystemClock::elapsedRealtime)
         session = s
         s.start()
@@ -68,7 +75,8 @@ class DictationController @Inject constructor(
             session = null
             log.event("end outcome=${outcome.javaClass.simpleName}")
             _ui.value = DictationUi.Ended(outcome)
-            delivery.get().deliver(outcome, start, startedAt)
+            // build() never fails, and a dictation with text always had its start sent.
+            delivery.get().deliver(outcome, start.await(), startedAt)
             watcher?.cancel()
         }
         return true

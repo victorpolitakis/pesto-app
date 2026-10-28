@@ -56,25 +56,37 @@ class OkHttpBackendClientTest {
         Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(403).message("Forbidden").build()
 
     @Test
-    fun `the token of the device goes in the header, and start goes first`() = runTest {
-        client().open(Start(profile = "mail")).sendAudio(ByteArray(4))
+    fun `the token of the device goes in the header`() = runTest {
+        client().open()
         val (socket, _) = sockets.opened.single()
         assertEquals("Bearer device-token", socket.request().header("Authorization"))
-        assertTrue((socket.sent.first() as String).contains("\"type\":\"start\""))
+    }
+
+    @Test
+    fun `audio waits for start, and start goes first`() = runTest {
+        val connection = client().open()
+        val (socket, _) = sockets.opened.single()
+        connection.sendAudio(ByteArray(4))
+        assertEquals(emptyList<Any>(), socket.sent)
+
+        connection.start(Start(profile = "mail"))
+        assertTrue((socket.sent[0] as String).contains("\"type\":\"start\""))
         assertTrue(socket.sent[1] is ByteString)
+        connection.sendAudio(ByteArray(4))
+        assertEquals(3, socket.sent.size)
     }
 
     @Test
     fun `without a token nothing is opened`() = runTest {
         tokens.clear()
-        val connection = client().open(Start())
+        val connection = client().open()
         assertEquals(Incoming.Closed(failure = true, reason = Incoming.UNAUTHORIZED), connection.incoming.receive())
         assertTrue(sockets.opened.isEmpty())
     }
 
     @Test
     fun `a refused handshake forgets the token`() = runTest {
-        val connection = client().open(Start())
+        val connection = client().open()
         val (socket, listener) = sockets.opened.single()
         listener.onFailure(socket, ProtocolException("Expected HTTP 101"), refused(socket.request()))
         runCurrent()
@@ -84,7 +96,7 @@ class OkHttpBackendClientTest {
 
     @Test
     fun `a close with 1008 forgets the token`() = runTest {
-        val connection = client().open(Start())
+        val connection = client().open()
         val (socket, listener) = sockets.opened.single()
         listener.onClosing(socket, 1008, "")
         runCurrent()
@@ -94,7 +106,7 @@ class OkHttpBackendClientTest {
 
     @Test
     fun `a network failure keeps the token`() = runTest {
-        val connection = client().open(Start())
+        val connection = client().open()
         val (socket, listener) = sockets.opened.single()
         listener.onFailure(socket, ConnectException("refused"), null)
         runCurrent()

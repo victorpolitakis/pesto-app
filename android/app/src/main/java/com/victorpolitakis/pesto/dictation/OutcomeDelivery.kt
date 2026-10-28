@@ -25,7 +25,7 @@ class OutcomeDelivery @Inject constructor(
             Outcome.Cancelled, is Outcome.Failed -> return
         }
         if (text.isBlank()) return
-        val method = inserter.insert(text)
+        val method = inserter.insert(text, start.terms.toSet())
         log.event("inserted method=$method")
         if (start.fieldContext.isIncognito == true) return
         history.record(

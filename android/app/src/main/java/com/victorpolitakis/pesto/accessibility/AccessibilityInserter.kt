@@ -30,7 +30,7 @@ class AccessibilityInserter @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val log: PestoLog,
 ) : Inserter {
-    override suspend fun insert(text: String): InsertMethod {
+    override suspend fun insert(text: String, terms: Set<String>): InsertMethod {
         val node = bridge.focusedNode()
         val editor = bridge.editorInfo
         // C7, checked again at insertion: the focus may have moved to a password field.
@@ -42,7 +42,7 @@ class AccessibilityInserter @Inject constructor(
         if (around != null && around.selectionEnd >= 0) {
             val all = around.text.toString()
             val end = around.selectionEnd.coerceIn(0, all.length)
-            val piece = TextJoiner.join(all.substring(0, end), all.substring(end), text)
+            val piece = TextJoiner.join(all.substring(0, end), all.substring(end), text, terms)
             if (piece.isEmpty()) return InsertMethod.COMMIT_TEXT
             if (around.selectionStart != around.selectionEnd) {
                 // Insert after the selection, without replacing it (replacing is X1).
@@ -59,7 +59,7 @@ class AccessibilityInserter @Inject constructor(
         } else {
             val current = if (node!!.isShowingHintText) "" else node.text?.toString().orEmpty()
             val end = node.textSelectionEnd.takeIf { it in 0..current.length } ?: current.length
-            val piece = TextJoiner.join(current.substring(0, end), current.substring(end), text)
+            val piece = TextJoiner.join(current.substring(0, end), current.substring(end), text, terms)
             if (setText(node, current.substring(0, end), piece, current.substring(end))) return InsertMethod.SET_TEXT
         }
         return clipboard(text, "insertion_failed")

@@ -10,6 +10,8 @@
     <string name="status_listening">Ακούω…</string>
     <string name="status_paused">Παύση</string>
     <string name="status_finishing">Ολοκλήρωση…</string>
+    <!-- The status and the name of the profile of the dictation (C9). -->
+    <string name="panel_status_profile">%1$s · %2$s</string>
     <!-- TODO(phase 6): temporary error messages, improved with the design. -->
     <string name="error_no_server">Δεν βρέθηκε ο server</string>
     <string name="error_unpaired">Η συσκευή δεν είναι συνδεδεμένη με τον backend: άνοιξε το Pesto</string>
