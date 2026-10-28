@@ -12,10 +12,13 @@ import com.victorpolitakis.pesto.data.TermEntity
 import com.victorpolitakis.pesto.protocol.FieldContext
 import com.victorpolitakis.pesto.protocol.MAX_TERMS_CHARS
 import com.victorpolitakis.pesto.protocol.encode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -100,8 +103,17 @@ class StartBuilderTest {
         assertEquals("raw", p.builder.build(whatsapp).profile)
         p.settings.setDefaultProfile("note")
         p.dictionary.add("Pesto")
-        advanceUntilIdle()
-        val start = p.builder.build(whatsapp)
+        // DataStore reads on its own IO thread, so virtual time does not wait for it: real time, with a limit.
+        val start = withContext(Dispatchers.Default) {
+            withTimeout(5_000) {
+                var s = p.builder.build(whatsapp)
+                while (s.profile != "note") {
+                    delay(10)
+                    s = p.builder.build(whatsapp)
+                }
+                s
+            }
+        }
         assertEquals("note", start.profile)
         assertEquals(listOf("Pesto"), start.terms)
     }

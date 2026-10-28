@@ -119,7 +119,8 @@ fun SettingsRoute(
     // Back from a page of Android: what it granted meanwhile, and the backend again.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
     LaunchedEffect(state.paired) { if (state.paired) code = "" }
-    val actions = remember(viewModel, onRequest) {
+    // The ViewModel is the same for the whole route, so only onRequest is a key.
+    val actions = remember(onRequest) {
         SettingsActions(
             onPrimaryLanguage = viewModel::setPrimaryLanguage,
             onSecondaryLanguage = viewModel::setSecondaryLanguage,
