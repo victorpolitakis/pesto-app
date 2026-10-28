@@ -7,10 +7,13 @@ import com.victorpolitakis.pesto.accessibility.AccessibilityInserter
 import com.victorpolitakis.pesto.backend.BackendClient
 import com.victorpolitakis.pesto.backend.BackendConfig
 import com.victorpolitakis.pesto.backend.OkHttpBackendClient
+import com.victorpolitakis.pesto.data.AppProfileDao
 import com.victorpolitakis.pesto.data.DictationDao
 import com.victorpolitakis.pesto.data.DictationHistory
 import com.victorpolitakis.pesto.data.HistoryRepository
+import com.victorpolitakis.pesto.data.MIGRATION_1_2
 import com.victorpolitakis.pesto.data.PestoDatabase
+import com.victorpolitakis.pesto.data.TermDao
 import com.victorpolitakis.pesto.dictation.Delivery
 import com.victorpolitakis.pesto.dictation.OutcomeDelivery
 import com.victorpolitakis.pesto.dictation.WallClock
@@ -63,11 +66,18 @@ abstract class AppModule {
             .build()
 
         // Room opens the file on the first query, i.e. at the end of the first dictation.
+        // Never destructive: a version without its migration fails, the dictations stay.
         @Provides @Singleton
         fun database(@ApplicationContext context: Context): PestoDatabase =
-            Room.databaseBuilder(context, PestoDatabase::class.java, "pesto.db").build()
+            Room.databaseBuilder(context, PestoDatabase::class.java, "pesto.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
 
         @Provides fun dictationDao(db: PestoDatabase): DictationDao = db.dictations()
+
+        @Provides fun termDao(db: PestoDatabase): TermDao = db.terms()
+
+        @Provides fun appProfileDao(db: PestoDatabase): AppProfileDao = db.appProfiles()
 
         @Provides fun wallClock() = WallClock(System::currentTimeMillis)
     }

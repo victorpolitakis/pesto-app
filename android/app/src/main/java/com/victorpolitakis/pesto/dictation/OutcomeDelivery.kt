@@ -3,7 +3,7 @@ package com.victorpolitakis.pesto.dictation
 import com.victorpolitakis.pesto.data.DictationHistory
 import com.victorpolitakis.pesto.data.NewDictation
 import com.victorpolitakis.pesto.insert.Inserter
-import com.victorpolitakis.pesto.protocol.FieldContext
+import com.victorpolitakis.pesto.protocol.Start
 import com.victorpolitakis.pesto.util.PestoLog
 import javax.inject.Inject
 
@@ -17,7 +17,7 @@ class OutcomeDelivery @Inject constructor(
     private val log: PestoLog,
     private val clock: WallClock,
 ) : Delivery {
-    override suspend fun deliver(outcome: Outcome, context: FieldContext) {
+    override suspend fun deliver(outcome: Outcome, start: Start, startedAt: Long) {
         val text = when (outcome) {
             is Outcome.Done -> outcome.final.text
             is Outcome.ConnectionLost -> outcome.lastText
@@ -26,11 +26,13 @@ class OutcomeDelivery @Inject constructor(
         if (text.isBlank()) return
         val method = inserter.insert(text)
         log.event("inserted method=$method")
-        if (context.isIncognito == true) return
+        if (start.fieldContext.isIncognito == true) return
         history.record(
             NewDictation(
                 createdAt = clock.now(),
-                context = context,
+                startedAt = startedAt,
+                context = start.fieldContext,
+                requestedProfile = start.profile,
                 final = (outcome as? Outcome.Done)?.final,
                 lostText = (outcome as? Outcome.ConnectionLost)?.lastText,
                 insertMethod = method.name,

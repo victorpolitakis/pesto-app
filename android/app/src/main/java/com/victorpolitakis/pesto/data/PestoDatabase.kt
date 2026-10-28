@@ -1,20 +1,22 @@
 package com.victorpolitakis.pesto.data
 
-import androidx.room.Dao
 import androidx.room.Database
-import androidx.room.Insert
-import androidx.room.Query
 import androidx.room.RoomDatabase
 
-@Dao
-interface DictationDao {
-    @Insert suspend fun insert(entity: DictationEntity): Long
-
-    @Query("SELECT COUNT(*) FROM dictations") suspend fun count(): Int
-}
-
-/** The schema is exported to app/schemas, so phase 3 can migrate without losing dictations. */
-@Database(entities = [DictationEntity::class], version = 1, exportSchema = true)
+/**
+ * v2 (phase 3): the search index, the Dictionary terms and a profile per app.
+ * The schemas are exported to app/schemas: every version change needs a
+ * migration (Migrations.kt) and its test, never a destructive one.
+ */
+@Database(
+    entities = [DictationEntity::class, DictationFts::class, TermEntity::class, AppProfileEntity::class],
+    version = 2,
+    exportSchema = true,
+)
 abstract class PestoDatabase : RoomDatabase() {
     abstract fun dictations(): DictationDao
+
+    abstract fun terms(): TermDao
+
+    abstract fun appProfiles(): AppProfileDao
 }

@@ -39,6 +39,7 @@ class DictationController @Inject constructor(
     private val audio: Lazy<AudioCapture>,
     private val backend: Lazy<BackendClient>,
     private val delivery: Lazy<Delivery>,
+    private val clock: WallClock,
     private val log: PestoLog,
     @param:AppScope private val scope: CoroutineScope,
 ) {
@@ -54,8 +55,10 @@ class DictationController @Inject constructor(
     fun start(trigger: Trigger, field: FieldState?): Boolean {
         if (session != null) return false
         val context = field?.let(FieldRules::context) ?: FieldContext()
+        val startedAt = clock.now()
         log.event("start trigger=$trigger package=${context.packageName} input_type=${context.inputType}")
-        val s = DictationSession(Start(fieldContext = context), audio.get(), backend.get(), scope, log, SystemClock::elapsedRealtime)
+        val start = Start(fieldContext = context)
+        val s = DictationSession(start, audio.get(), backend.get(), scope, log, SystemClock::elapsedRealtime)
         session = s
         s.start()
         watcher = scope.launch {
@@ -64,7 +67,7 @@ class DictationController @Inject constructor(
             session = null
             log.event("end outcome=${outcome.javaClass.simpleName}")
             _ui.value = DictationUi.Ended(outcome)
-            delivery.get().deliver(outcome, context)
+            delivery.get().deliver(outcome, start, startedAt)
             watcher?.cancel()
         }
         return true
@@ -86,5 +89,6 @@ class DictationController @Inject constructor(
 
 /** What happens with the outcome of a dictation: insertion and History. */
 interface Delivery {
-    suspend fun deliver(outcome: Outcome, context: FieldContext)
+    /** [start]: what the dictation asked for (field, profile, terms). [startedAt]: the tap, wall clock. */
+    suspend fun deliver(outcome: Outcome, start: Start, startedAt: Long)
 }
