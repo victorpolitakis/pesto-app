@@ -43,7 +43,7 @@ import com.victorpolitakis.pesto.ui.home.HomeRoute
 import com.victorpolitakis.pesto.ui.profiles.ProfileDetailRoute
 import com.victorpolitakis.pesto.ui.profiles.ProfilesRoute
 import com.victorpolitakis.pesto.ui.search.SearchRoute
-import com.victorpolitakis.pesto.ui.settings.SettingsScreen
+import com.victorpolitakis.pesto.ui.settings.SettingsRoute
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
@@ -128,7 +128,7 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
     }
     composable<Routes.History> { HistoryRoute(onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) }) }
     composable<Routes.Settings> { entry ->
-        SettingsScreen(section = entry.toRoute<Routes.Settings>().section, onBack = { nav.popBackStack() })
+        SettingsRoute(section = entry.toRoute<Routes.Settings>().section, onBack = { nav.popBackStack() }, onRequest = onRequest)
     }
     composable<Routes.Search> {
         SearchRoute(onBack = { nav.popBackStack() }, onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) })

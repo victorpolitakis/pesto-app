@@ -49,6 +49,15 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun `the second language as the primary swaps the two`() = runTest {
+        val repo = settings()
+        repo.setPrimaryLanguage("en")
+        assertEquals(listOf("en", "el"), repo.stored.first().languageHints)
+        repo.setPrimaryLanguage("de")
+        assertEquals(listOf("de", "el"), repo.stored.first().languageHints)
+    }
+
+    @Test
     fun `the default profile`() = runTest {
         val repo = settings()
         repo.setDefaultProfile("mail")

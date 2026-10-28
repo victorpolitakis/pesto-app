@@ -51,10 +51,13 @@ class RequirementChecks @Inject constructor(
      * The order of C3. The overlay permission only with the experimental method 2
      * (Δ12), read every time, so a change in Settings changes what is asked.
      */
-    val order: List<Requirement>
-        get() = listOf(Requirement.MICROPHONE, Requirement.ACCESSIBILITY, Requirement.BATTERY) +
+    val order: List<Requirement> get() = order(overlayMethod.current())
+
+    /** The order with [method]: Settings show the list of the method just chosen. */
+    fun order(method: OverlayMethod): List<Requirement> =
+        listOf(Requirement.MICROPHONE, Requirement.ACCESSIBILITY, Requirement.BATTERY) +
             (if (isXiaomi) listOf(Requirement.XIAOMI) else emptyList()) +
-            (if (overlayMethod.current() == OverlayMethod.APPLICATION) listOf(Requirement.OVERLAY) else emptyList()) +
+            (if (method == OverlayMethod.APPLICATION) listOf(Requirement.OVERLAY) else emptyList()) +
             Requirement.PAIRING
 
     /**

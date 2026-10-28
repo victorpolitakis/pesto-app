@@ -67,6 +67,7 @@ class AnalyticsScreenTest {
         rule.onNodeWithTag("analytics").performScrollToNode(hasTestTag("day_bars"))
         rule.onAllNodesWithTag("day_bar").assertCountEquals(7)
         rule.onAllNodesWithTag("day_bar")[6].assertContentDescriptionEquals("Τετάρτη 28 Οκτ: 120 λέξεις, 3 υπαγορεύσεις")
+        rule.onNodeWithTag("analytics").performScrollToNode(hasTestTag("days_30"))
         rule.onNodeWithTag("days_30").performClick()
         assertEquals(30, chosen)
     }

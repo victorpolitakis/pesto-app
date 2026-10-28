@@ -27,7 +27,6 @@
     <string name="toast_xiaomi">Ενεργοποίησε το Autostart και βάλε την μπαταρία σε «No restrictions». Μετά κλείδωσε το Pesto στα πρόσφατα</string>
     <string name="req_overlay">Εμφάνιση πάνω από άλλες εφαρμογές (experimental μέθοδος 2)</string>
     <string name="req_pairing">Σύνδεση της συσκευής με τον backend (κωδικός pairing)</string>
-    <string name="toast_pairing">Σύνδεσε τη συσκευή: τρέξε «pesto-server pair» στο Mac και γράψε τον κωδικό</string>
     <string name="toast_enable_accessibility">Ενεργοποίησε το Pesto στις Downloaded apps</string>
     <string name="toast_restart_accessibility">Το Pesto είναι ενεργό αλλά δεν τρέχει: απενεργοποίησέ το και ενεργοποίησέ το ξανά</string>
     <string name="toast_mic_settings">Δώσε την άδεια μικροφώνου από τις Άδειες της εφαρμογής</string>
@@ -68,7 +67,6 @@
     <string name="title_analytics">Στατιστικά</string>
     <string name="title_apps">Εφαρμογές</string>
     <string name="title_dictation">Υπαγόρευση</string>
-    <string name="skeleton">Τα δεδομένα αυτής της οθόνης έρχονται στο επόμενο βήμα.</string>
     <string name="copy">Αντιγραφή</string>
     <string name="delete">Διαγραφή</string>
     <string name="value_none">—</string>
@@ -208,6 +206,57 @@
     <string name="analytics_per_profile">Ανά προφίλ</string>
     <string name="analytics_reliability">Αξιοπιστία</string>
     <string name="analytics_no_fallback">Κανένας: το προφίλ εφαρμόστηκε</string>
+
+    <!-- C11: Settings. TODO(phase 6): the texts, with the design. -->
+    <string name="settings_languages">Γλώσσες</string>
+    <string name="settings_languages_explained">Οι γλώσσες που περιμένει η αναγνώριση ομιλίας. Με δύο, μπορείς να τις ανακατεύεις στην ίδια πρόταση.</string>
+    <string name="settings_primary_language">Κύρια γλώσσα</string>
+    <string name="settings_secondary_language">Δεύτερη γλώσσα</string>
+    <string name="settings_no_language">Καμία</string>
+    <string name="settings_strict">Αυστηρά μόνο αυτές</string>
+    <string name="settings_strict_explained">Η αναγνώριση γράφει μόνο αυτές τις γλώσσες, ακόμα κι αν ακούσει άλλη.</string>
+    <string name="settings_default_profile">Προεπιλεγμένο προφίλ</string>
+    <string name="settings_permissions">Άδειες</string>
+    <string name="settings_granted">Εντάξει</string>
+    <string name="settings_missing">Λείπει</string>
+    <string name="settings_open">Άνοιγμα</string>
+    <string name="settings_overlay">Μέθοδος του κουμπιού</string>
+    <string name="settings_overlay_accessibility">Accessibility (προτεινόμενη)</string>
+    <string name="settings_overlay_application">Εμφάνιση πάνω από εφαρμογές (πειραματική)</string>
+    <!-- Δ12: what method 2 costs. -->
+    <string name="settings_overlay_application_explained">Θέλει μία άδεια παραπάνω, και το Android δείχνει μόνιμη ειδοποίηση («Το Pesto εμφανίζεται πάνω από άλλες εφαρμογές») όσο είναι επιλεγμένη.</string>
+    <string name="settings_xiaomi">Xiaomi</string>
+    <string name="settings_xiaomi_explained">Κλείδωσε το Pesto στα πρόσφατα, αλλιώς ένα swipe σταματά το service.</string>
+    <string name="settings_xiaomi_open">Ρυθμίσεις Xiaomi</string>
+    <string name="settings_backend">Σύνδεση με τον backend</string>
+    <string name="settings_backend_url">Διεύθυνση</string>
+    <string name="settings_backend_status">Ο backend</string>
+    <string name="settings_backend_checking">Έλεγχος…</string>
+    <string name="settings_backend_answers">Απαντά</string>
+    <string name="settings_backend_no_answer">Δεν απαντά</string>
+    <string name="settings_backend_check">Έλεγχος</string>
+    <string name="settings_paired">Συνδεδεμένη συσκευή</string>
+    <string name="settings_yes">Ναι</string>
+    <string name="settings_no">Όχι</string>
+    <string name="settings_pairing_explained">Τρέξε «pesto-server pair» στο Mac και γράψε εδώ τον κωδικό των 8 ψηφίων. Λήγει σε 10 λεπτά.</string>
+    <string name="settings_pairing_code">Κωδικός σύνδεσης</string>
+    <string name="settings_pair">Σύνδεση</string>
+    <string name="settings_pairing_wrong">Λάθος ή ληγμένος κωδικός. Φτιάξε νέο με «pesto-server pair».</string>
+    <string name="settings_pairing_failed">Ο backend δεν απάντησε. Δοκίμασε ξανά.</string>
+    <string name="settings_pairing_done">Η συσκευή συνδέθηκε.</string>
+    <string name="settings_unpair">Αποσύνδεση</string>
+    <string name="settings_unpair_explained">Ξεχνά τη σύνδεση σε αυτό το κινητό. Στο Mac, το «pesto-server revoke» τη σβήνει και από τον backend.</string>
+    <!-- Δ26: what goes where, without the names of the providers. -->
+    <string name="settings_privacy">Απόρρητο</string>
+    <string name="settings_privacy_audio">Ο ήχος, όσο μιλάς, πηγαίνει στον backend σου και από εκεί σε μια υπηρεσία αναγνώρισης ομιλίας, που τον κάνει κείμενο. Το κινητό δεν κρατά τον ήχο.</string>
+    <string name="settings_privacy_text">Το κείμενο πηγαίνει σε μια υπηρεσία AI μόνο με προφίλ. Με το «Χωρίς αλλαγές» δεν πηγαίνει πουθενά.</string>
+    <string name="settings_privacy_phone">Το κινητό κρατά, μόνο στη συσκευή, το Ιστορικό (το κείμενο, την εφαρμογή και τους χρόνους κάθε υπαγόρευσης), το Λεξικό και τις ρυθμίσεις. Οι όροι του Λεξικού πηγαίνουν σε κάθε υπαγόρευση στην αναγνώριση ομιλίας.</string>
+    <string name="settings_privacy_never">Σε πεδία κωδικών το Pesto δεν εμφανίζεται. Σε ιδιωτική περιήγηση (incognito) το κείμενο μπαίνει στο πεδίο, αλλά δεν γράφεται στο Ιστορικό.</string>
+    <string name="settings_delete_all">Διαγραφή όλου του Ιστορικού</string>
+    <string name="settings_delete_all_confirm">Διαγραφή όλων των υπαγορεύσεων; Δεν αναιρείται.</string>
+    <string name="settings_about">Σχετικά</string>
+    <string name="settings_version">Έκδοση</string>
+    <string name="settings_build">Build</string>
 
     <!-- C11: the languages of the speech recognition (Δ14). -->
     <string name="language_el">Ελληνικά</string>

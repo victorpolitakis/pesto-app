@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- The experimental method 2 of the button (Δ12), in the release build too. Asked only with that method. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Names and icons of the apps of the History (C8): the apps with a launcher icon, without QUERY_ALL_PACKAGES. -->
     <queries>
@@ -12,6 +14,7 @@
         </intent>
     </queries>
 
+    <!-- TODO(experimental): export or backup of the data (Android Auto Backup with rules for what leaves the phone). -->
     <application
         android:name=".PestoApp"
         android:allowBackup="false"

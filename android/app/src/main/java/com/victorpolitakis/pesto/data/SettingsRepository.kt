@@ -76,7 +76,12 @@ class SettingsRepository @Inject constructor(
 
     override fun current(): OverlayMethod = settings.value.overlayMethod
 
-    suspend fun setPrimaryLanguage(code: String) = edit { it[PRIMARY] = code }
+    /** The second language becomes the primary: the two swap, so they stay different. */
+    suspend fun setPrimaryLanguage(code: String) = edit { p ->
+        val current = read(p)
+        if (code == current.secondaryLanguage) p[SECONDARY] = current.primaryLanguage
+        p[PRIMARY] = code
+    }
 
     /** [code] null: no second language. */
     suspend fun setSecondaryLanguage(code: String?) = edit { it[SECONDARY] = code ?: NONE }

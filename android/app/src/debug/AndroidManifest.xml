@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug build only: test screen, ws:// to the laptop, and the overlay permission for method 2 (Δ16). -->
+<!-- Debug build only: test screen, and ws:// to the laptop. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
     <application android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".debug.TestFieldsActivity"

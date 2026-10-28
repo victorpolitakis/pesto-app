@@ -32,6 +32,14 @@ class RequirementChecksTest {
     }
 
     @Test
+    fun `Settings ask the order of the method just chosen`() {
+        assertEquals(checks.order, checks.order(OverlayMethod.ACCESSIBILITY))
+        assertTrue(Requirement.OVERLAY in checks.order(OverlayMethod.APPLICATION))
+        // The method in memory has not changed.
+        assertFalse(Requirement.OVERLAY in checks.order)
+    }
+
+    @Test
     fun `without a token the pairing is missing`() {
         assertTrue(Requirement.PAIRING in checks.missing(xiaomiShown = false, paired = false))
         assertFalse(Requirement.PAIRING in checks.missing(xiaomiShown = false, paired = true))

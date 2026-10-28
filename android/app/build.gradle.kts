@@ -26,9 +26,17 @@ android {
         minSdk = 33
         targetSdk = 36
         versionCode = 1
-        versionName = "0.2.0"
+        versionName = "0.3.0"
 
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+    }
+
+    buildTypes {
+        release {
+            // Δ18: signed with the debug key, only for local tests, so that adb install -r needs no uninstall.
+            // TODO(later): a release key for the Play Store, after 15/2.
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
 
     buildFeatures {

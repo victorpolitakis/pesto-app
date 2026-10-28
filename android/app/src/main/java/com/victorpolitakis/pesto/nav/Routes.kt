@@ -34,4 +34,4 @@ object Routes {
 }
 
 /** The sections of Settings, in their order (C11). Home's Languages and C3's pairing open one directly. */
-enum class SettingsSection { LANGUAGES, PROFILE, OVERLAY, PERMISSIONS, XIAOMI, BACKEND, PRIVACY, ABOUT }
+enum class SettingsSection { LANGUAGES, PROFILE, PERMISSIONS, OVERLAY, XIAOMI, BACKEND, PRIVACY, ABOUT }

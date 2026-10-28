@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.victorpolitakis.pesto.data.AppDisplay
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
@@ -64,9 +65,10 @@ class AppsScreenTest {
         rule.onNodeWithTag("choice_chatter").assertIsSelected()
         rule.onNodeWithTag("choice_automatic").assertIsNotSelected()
 
-        rule.onNodeWithTag("choice_professional").performClick()
+        // The choices scroll inside the dialog on a small screen.
+        rule.onNodeWithTag("choice_professional").performScrollTo().performClick()
         assertEquals("professional", set)
-        rule.onNodeWithTag("choice_automatic").assertTextContains("Αυτόματο: η προεπιλογή (Email)").performClick()
+        rule.onNodeWithTag("choice_automatic").performScrollTo().assertTextContains("Αυτόματο: η προεπιλογή (Email)").performClick()
         assertNull(set)
     }
 
