@@ -13,16 +13,27 @@ import javax.inject.Singleton
 private val Context.permissionStore by preferencesDataStore("permissions")
 
 /**
- * The only thing C3 remembers: whether the microphone was asked for before,
- * to tell the second "Deny" (the system dialog no longer appears) from the first.
+ * What C3 remembers: whether the user has already answered "Deny" for the
+ * microphone, and whether the Xiaomi page was opened once (it cannot be checked).
+ * For the microphone: Only an actual deny counts: a dialog closed without an
+ * answer does not, so the second request still shows the system dialog
+ * (found on the POCO, 28/10). After a deny, "no rationale" means the system
+ * dialog no longer appears, and only App info is left.
  */
 @Singleton
 class PermissionPrefs @Inject constructor(@param:ApplicationContext private val context: Context) {
-    private val micAsked = booleanPreferencesKey("mic_asked")
+    private val micDenied = booleanPreferencesKey("mic_denied")
+    private val xiaomiShown = booleanPreferencesKey("xiaomi_shown")
 
-    suspend fun wasMicAsked(): Boolean = context.permissionStore.data.map { it[micAsked] == true }.first()
+    suspend fun wasMicDenied(): Boolean = context.permissionStore.data.map { it[micDenied] == true }.first()
 
-    suspend fun setMicAsked() {
-        context.permissionStore.edit { it[micAsked] = true }
+    suspend fun setMicDenied() {
+        context.permissionStore.edit { it[micDenied] = true }
+    }
+
+    suspend fun wasXiaomiShown(): Boolean = context.permissionStore.data.map { it[xiaomiShown] == true }.first()
+
+    suspend fun setXiaomiShown() {
+        context.permissionStore.edit { it[xiaomiShown] = true }
     }
 }

@@ -31,6 +31,8 @@ import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.victorpolitakis.pesto.accessibility.EditorBridge
 import com.victorpolitakis.pesto.data.HistoryRepository
+import com.victorpolitakis.pesto.overlay.OverlayMethod
+import com.victorpolitakis.pesto.overlay.OverlayMethodProvider
 import com.victorpolitakis.pesto.permissions.PermissionPrefs
 import com.victorpolitakis.pesto.permissions.Requirement
 import com.victorpolitakis.pesto.permissions.RequirementChecks
@@ -51,16 +53,19 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var prefs: PermissionPrefs
     @Inject lateinit var history: HistoryRepository
     @Inject lateinit var log: PestoLog
+    @Inject lateinit var overlayMethod: OverlayMethodProvider
 
     private val vm: MainViewModel by viewModels()
     private lateinit var checks: RequirementChecks
     // The result also triggers onResume, which asks for the next missing one.
-    private val micRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    private val micRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted) lifecycleScope.launch { prefs.setMicDenied() }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // The overlay permission only while the debug build compares the two overlay methods (Δ16).
-        checks = RequirementChecks(this, bridge, withOverlay = BuildConfig.DEBUG)
+        // The overlay permission only for the experimental method 2 (Δ16, 28/10: method 1 is the main one).
+        checks = RequirementChecks(this, bridge, withOverlay = overlayMethod.current() == OverlayMethod.APPLICATION)
         setContent {
             PestoTheme {
                 val status by vm.status.collectAsState()
@@ -71,15 +76,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        val missing = checks.missing()
-        vm.update { it.copy(granted = checks.order.associateWith { r -> r !in missing }, backendUrl = BuildConfig.BACKEND_URL) }
         lifecycleScope.launch {
+            val missing = checks.missing(xiaomiShown = prefs.wasXiaomiShown())
             val count = runCatching { history.count() }.getOrNull()
-            vm.update { it.copy(dictations = count) }
+            vm.update {
+                it.copy(granted = checks.order.associateWith { r -> r !in missing }, backendUrl = BuildConfig.BACKEND_URL, dictations = count)
+            }
+            val next = vm.flow(checks.order).next(missing) ?: return@launch
+            log.event("permission request=$next missing=$missing")
+            request(next)
         }
-        val next = vm.flow(checks.order).next(missing) ?: return
-        log.event("permission request=$next missing=$missing")
-        request(next)
     }
 
     override fun onStop() {
@@ -91,11 +97,10 @@ class MainActivity : ComponentActivity() {
         when (r) {
             Requirement.MICROPHONE -> lifecycleScope.launch {
                 // After a second "Deny" the system dialog no longer appears: only App info is left.
-                if (prefs.wasMicAsked() && !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+                if (prefs.wasMicDenied() && !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
                     toast(R.string.toast_mic_settings)
                     open(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
                 } else {
-                    prefs.setMicAsked()
                     micRequest.launch(Manifest.permission.RECORD_AUDIO)
                 }
             }
@@ -106,6 +111,15 @@ class MainActivity : ComponentActivity() {
             }
             Requirement.BATTERY ->
                 open(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, "package:$packageName".toUri()))
+            Requirement.XIAOMI -> lifecycleScope.launch {
+                prefs.setXiaomiShown()
+                toast(R.string.toast_xiaomi)
+                // The Xiaomi permission page; App info when it does not open (other HyperOS versions).
+                val editor = Intent("miui.intent.action.APP_PERM_EDITOR").putExtra("extra_pkgname", packageName)
+                if (runCatching { startActivity(editor) }.isFailure) {
+                    open(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
+                }
+            }
             Requirement.OVERLAY ->
                 open(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri()))
         }
@@ -140,6 +154,7 @@ private fun labelOf(r: Requirement) = when (r) {
     Requirement.MICROPHONE -> R.string.req_microphone
     Requirement.ACCESSIBILITY -> R.string.req_accessibility
     Requirement.BATTERY -> R.string.req_battery
+    Requirement.XIAOMI -> R.string.req_xiaomi
     Requirement.OVERLAY -> R.string.req_overlay
 }
 

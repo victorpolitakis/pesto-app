@@ -22,7 +22,7 @@ import javax.inject.Inject
 /**
  * Debug build only. Fixed test fields for the 10 insertion scenarios and the
  * smoke test, the controls to dictate without the overlay, and the
- * experimental overlay switch (Δ16), which is removed before phase 2 closes.
+ * overlay method switch (Δ16), until it moves to Settings in phase 3.
  */
 @AndroidEntryPoint
 class TestFieldsActivity : ComponentActivity() {

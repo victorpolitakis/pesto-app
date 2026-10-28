@@ -10,7 +10,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
-/** Release build: the real microphone and one fixed overlay method (updated with the choice of Δ16). */
+/** Release build: the real microphone and method 1 (Δ16). TODO(phase 3): the experimental method 2 from Settings. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class BuildTypeModule {

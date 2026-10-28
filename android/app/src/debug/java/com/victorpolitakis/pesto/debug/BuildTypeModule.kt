@@ -21,8 +21,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Experimental switch of the overlay method (Δ16), debug build only and only
- * for testing. TODO(phase 2, step 10): remove it once one method is chosen.
+ * Switch of the overlay method (Δ16, decided 28/10 on the POCO): method 1
+ * (ACCESSIBILITY) is the main one, method 2 (APPLICATION) stays as an
+ * experimental option. TODO(phase 3): move this switch to Settings, for the
+ * release build too.
  */
 @Singleton
 class DebugOverlayMethod @Inject constructor(@param:ApplicationContext context: Context) : OverlayMethodProvider {

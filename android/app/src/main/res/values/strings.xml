@@ -20,7 +20,9 @@
     <string name="req_microphone">Μικρόφωνο</string>
     <string name="req_accessibility">Accessibility service του Pesto</string>
     <string name="req_battery">Εξαίρεση από τη βελτιστοποίηση μπαταρίας</string>
-    <string name="req_overlay">Εμφάνιση πάνω από άλλες εφαρμογές (μόνο debug, Δ16)</string>
+    <string name="req_xiaomi">Xiaomi: Autostart, μπαταρία «No restrictions», κλείδωμα στα πρόσφατα (ζητείται μία φορά)</string>
+    <string name="toast_xiaomi">Ενεργοποίησε το Autostart και βάλε την μπαταρία σε «No restrictions». Μετά κλείδωσε το Pesto στα πρόσφατα</string>
+    <string name="req_overlay">Εμφάνιση πάνω από άλλες εφαρμογές (experimental μέθοδος 2)</string>
     <string name="toast_enable_accessibility">Ενεργοποίησε το Pesto στις Downloaded apps</string>
     <string name="toast_restart_accessibility">Το Pesto είναι ενεργό αλλά δεν τρέχει: απενεργοποίησέ το και ενεργοποίησέ το ξανά</string>
     <string name="toast_mic_settings">Δώσε την άδεια μικροφώνου από τις Άδειες της εφαρμογής</string>
