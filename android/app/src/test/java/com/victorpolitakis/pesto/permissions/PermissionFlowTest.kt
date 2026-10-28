@@ -3,6 +3,7 @@ package com.victorpolitakis.pesto.permissions
 import com.victorpolitakis.pesto.permissions.Requirement.ACCESSIBILITY
 import com.victorpolitakis.pesto.permissions.Requirement.BATTERY
 import com.victorpolitakis.pesto.permissions.Requirement.MICROPHONE
+import com.victorpolitakis.pesto.permissions.Requirement.PAIRING
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -55,5 +56,13 @@ class PermissionFlowTest {
         assertNull(flow.next(emptySet()))
         flow.onStop()
         assertEquals(ACCESSIBILITY, flow.next(setOf(ACCESSIBILITY))) // revoked in the settings meanwhile
+    }
+
+    @Test
+    fun `the pairing comes after the permissions`() {
+        val withPairing = PermissionFlow(listOf(MICROPHONE, ACCESSIBILITY, BATTERY, PAIRING))
+        assertEquals(MICROPHONE, withPairing.next(setOf(MICROPHONE, PAIRING)))
+        assertEquals(PAIRING, withPairing.next(setOf(PAIRING))) // back from the dialog, granted
+        assertNull(withPairing.next(emptySet())) // paired in Settings
     }
 }

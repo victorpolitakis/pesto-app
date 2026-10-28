@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Smoke test on the emulator (Δ8): install, permissions with adb, one full
-# dictation through the mic button with a synthetic phrase (macOS `say`), and
-# checks on the inserted text and the History. Run from android/, with the
-# emulator running and the backend on the Mac (`uv run pesto-server`).
+# Smoke test on the emulator (Δ8): install, permissions with adb, pairing with
+# a code of `pesto-server pair`, one full dictation through the mic button with
+# a synthetic phrase (macOS `say`), and checks on the inserted text and the
+# History. Run from android/, with the emulator running and the backend on the
+# Mac (`uv run pesto-server`).
 #
 #   tools/smoke.sh
 #
@@ -47,6 +48,13 @@ for _ in 1 2 3 4 5; do
   [ "$("$ADB" shell settings get secure enabled_accessibility_services)" = "$SVC" ] && break
 done
 [ "$("$ADB" shell settings get secure enabled_accessibility_services)" = "$SVC" ] || fail "accessibility service not enabled"
+
+step "pairing (Δ24: no token in the APK)"
+code=$(cd ../backend && uv run pesto-server pair | sed -nE 's/^Pairing code: ([0-9]{8}).*/\1/p')
+[ -n "$code" ] || fail "no code from pesto-server pair"
+"$ADB" logcat -c
+"$ADB" shell am start -n "$PKG/.debug.TestFieldsActivity" --es do pair --es code "$code" >/dev/null
+wait_log Pesto "pairing result=Paired" 10 || fail "pairing failed: $("$ADB" logcat -d -s Pesto | grep pairing | tail -1)"
 
 step "synthetic phrase"
 say -v Melina -o "$WORK/phrase.aiff" "Καλημέρα Γιώργο, το meeting πάει για την Πέμπτη στις δέκα."

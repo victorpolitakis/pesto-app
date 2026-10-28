@@ -3,6 +3,7 @@ package com.victorpolitakis.pesto.dictation
 import com.victorpolitakis.pesto.FakeAudioCapture
 import com.victorpolitakis.pesto.FakeBackendClient
 import com.victorpolitakis.pesto.FakeLog
+import com.victorpolitakis.pesto.backend.Incoming
 import com.victorpolitakis.pesto.protocol.Cancel
 import com.victorpolitakis.pesto.protocol.Error
 import com.victorpolitakis.pesto.protocol.Final
@@ -137,6 +138,14 @@ class DictationSessionTest {
         backend.drop()
         runCurrent()
         assertEquals(Outcome.Failed("no_server"), s.outcome.await())
+    }
+
+    @Test
+    fun `a refused token fails as unauthorized, so the panel says to pair`() = runTest {
+        val s = session()
+        backend.drop(reason = Incoming.UNAUTHORIZED)
+        runCurrent()
+        assertEquals(Outcome.Failed(Incoming.UNAUTHORIZED), s.outcome.await())
     }
 
     @Test

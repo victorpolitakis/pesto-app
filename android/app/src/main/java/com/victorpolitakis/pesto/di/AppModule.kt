@@ -1,6 +1,8 @@
 package com.victorpolitakis.pesto.di
 
 import android.content.Context
+import android.os.Build
+import android.provider.Settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -8,13 +10,18 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.victorpolitakis.pesto.BuildConfig
 import com.victorpolitakis.pesto.accessibility.AccessibilityInserter
+import com.victorpolitakis.pesto.backend.BackendApi
 import com.victorpolitakis.pesto.backend.BackendClient
 import com.victorpolitakis.pesto.backend.BackendConfig
+import com.victorpolitakis.pesto.backend.OkHttpBackendApi
 import com.victorpolitakis.pesto.backend.OkHttpBackendClient
 import com.victorpolitakis.pesto.data.AppProfileDao
+import com.victorpolitakis.pesto.data.DeviceName
+import com.victorpolitakis.pesto.data.DeviceTokenStore
 import com.victorpolitakis.pesto.data.DictationDao
 import com.victorpolitakis.pesto.data.DictationHistory
 import com.victorpolitakis.pesto.data.HistoryRepository
+import com.victorpolitakis.pesto.data.KeystoreTokenStore
 import com.victorpolitakis.pesto.data.MIGRATION_1_2
 import com.victorpolitakis.pesto.data.PestoDatabase
 import com.victorpolitakis.pesto.data.SettingsRepository
@@ -36,6 +43,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
+import okhttp3.WebSocket
 import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -61,18 +69,30 @@ abstract class AppModule {
     // The only binding of the overlay method, for both build types (Δ12).
     @Binds abstract fun overlayMethod(impl: SettingsRepository): OverlayMethodProvider
 
+    @Binds abstract fun tokens(impl: KeystoreTokenStore): DeviceTokenStore
+
+    @Binds abstract fun api(impl: OkHttpBackendApi): BackendApi
+
     companion object {
         @Provides @Singleton @AppScope
         fun appScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+        // Only the URL: the token is the phone's own, from pairing (Δ24).
         @Provides @Singleton
-        fun backendConfig() = BackendConfig(BuildConfig.BACKEND_URL, BuildConfig.APP_TOKEN)
+        fun backendConfig() = BackendConfig(BuildConfig.BACKEND_URL)
 
         @Provides @Singleton
         fun http(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(0, TimeUnit.SECONDS) // a dictation may stay open for minutes
             .build()
+
+        @Provides fun webSockets(http: OkHttpClient): WebSocket.Factory = http
+
+        @Provides fun deviceName(@ApplicationContext context: Context) = DeviceName {
+            Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME)
+                ?: "${Build.MANUFACTURER} ${Build.MODEL}"
+        }
 
         // Room opens the file on the first query, i.e. at the end of the first dictation.
         // Never destructive: a version without its migration fails, the dictations stay.

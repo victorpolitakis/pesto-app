@@ -2,9 +2,12 @@ package com.victorpolitakis.pesto
 
 import com.victorpolitakis.pesto.audio.AudioCapture
 import com.victorpolitakis.pesto.audio.AudioFrame
+import com.victorpolitakis.pesto.backend.BackendApi
 import com.victorpolitakis.pesto.backend.BackendClient
 import com.victorpolitakis.pesto.backend.BackendConnection
 import com.victorpolitakis.pesto.backend.Incoming
+import com.victorpolitakis.pesto.backend.PairResult
+import com.victorpolitakis.pesto.data.DeviceTokenStore
 import com.victorpolitakis.pesto.protocol.ClientMessage
 import com.victorpolitakis.pesto.protocol.ServerMessage
 import com.victorpolitakis.pesto.protocol.Start
@@ -12,7 +15,9 @@ import com.victorpolitakis.pesto.util.PestoLog
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 /** Fakes for JVM tests, like backend/tests/fakes.py. */
 
@@ -47,8 +52,8 @@ class FakeBackendClient : BackendClient {
         incoming.trySend(Incoming.Message(message))
     }
 
-    fun drop(failure: Boolean = true) {
-        incoming.trySend(Incoming.Closed(failure, "test"))
+    fun drop(failure: Boolean = true, reason: String = "test") {
+        incoming.trySend(Incoming.Closed(failure, reason))
     }
 
     override fun open(start: Start): BackendConnection {
@@ -68,6 +73,37 @@ class FakeBackendClient : BackendClient {
                 closed = true
             }
         }
+    }
+}
+
+/** The device token in memory only (the real one is in the Android Keystore). */
+class FakeDeviceTokenStore(token: String? = "device-token") : DeviceTokenStore {
+    private val token = MutableStateFlow(token)
+
+    override fun current(): String? = token.value
+
+    override suspend fun isPaired(): Boolean = token.value != null
+
+    override val paired: Flow<Boolean> = this.token.map { it != null }
+
+    override suspend fun save(token: String) {
+        this.token.value = token
+    }
+
+    override suspend fun clear() {
+        token.value = null
+    }
+}
+
+class FakeBackendApi(var result: PairResult = PairResult.Paired("new-token"), var answers: Boolean = true) : BackendApi {
+    /** Code and device name of every pairing. */
+    val pairs = mutableListOf<Pair<String, String>>()
+
+    override suspend fun health(): Boolean = answers
+
+    override suspend fun pair(code: String, deviceName: String): PairResult {
+        pairs += code to deviceName
+        return result
     }
 }
 

@@ -9,19 +9,13 @@ plugins {
 }
 
 // The backend URL comes from android/local.properties (not in git). The default
-// works with `adb reverse tcp:8000 tcp:8000`, and lets the build pass on CI.
+// works with `adb reverse tcp:8000 tcp:8000`, and lets the build pass on CI. It is
+// not a secret: without a token it gives nothing. No token is in the build: every
+// phone gets its own with `pesto-server pair` (Δ24).
 val localProperties = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 val backendUrl = localProperties.getProperty("pesto.backendUrl", "ws://127.0.0.1:8000/v1/dictate")
-
-// The app token lives only in backend/.env. Empty when the file is missing (CI).
-val appToken = rootProject.file("../backend/.env").takeIf { it.exists() }
-    ?.readLines()
-    ?.firstOrNull { it.startsWith("PESTO_APP_TOKEN=") }
-    ?.substringAfter("=")
-    ?.trim()
-    .orEmpty()
 
 android {
     namespace = "com.victorpolitakis.pesto"
@@ -35,7 +29,6 @@ android {
         versionName = "0.2.0"
 
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
-        buildConfigField("String", "APP_TOKEN", "\"$appToken\"")
     }
 
     buildFeatures {

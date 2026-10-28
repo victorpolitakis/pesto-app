@@ -29,10 +29,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
-import com.victorpolitakis.pesto.accessibility.EditorBridge
 import com.victorpolitakis.pesto.data.HistoryRepository
-import com.victorpolitakis.pesto.overlay.OverlayMethod
-import com.victorpolitakis.pesto.overlay.OverlayMethodProvider
+import com.victorpolitakis.pesto.data.PairingRepository
 import com.victorpolitakis.pesto.permissions.PermissionPrefs
 import com.victorpolitakis.pesto.permissions.Requirement
 import com.victorpolitakis.pesto.permissions.RequirementChecks
@@ -44,19 +42,18 @@ import javax.inject.Inject
 
 /**
  * C3: on every open, asks only for what is missing, one at a time, with
- * Android's own dialogs and settings pages. No onboarding screens: the rest
- * is a plain status page until Home arrives in phase 3.
+ * Android's own dialogs and settings pages, and the pairing last (Δ24). No
+ * onboarding screens: the rest is a plain status page until Home arrives.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject lateinit var bridge: EditorBridge
+    @Inject lateinit var checks: RequirementChecks
     @Inject lateinit var prefs: PermissionPrefs
+    @Inject lateinit var pairing: PairingRepository
     @Inject lateinit var history: HistoryRepository
     @Inject lateinit var log: PestoLog
-    @Inject lateinit var overlayMethod: OverlayMethodProvider
 
     private val vm: MainViewModel by viewModels()
-    private lateinit var checks: RequirementChecks
     // The result also triggers onResume, which asks for the next missing one.
     private val micRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (!granted) lifecycleScope.launch { prefs.setMicDenied() }
@@ -64,12 +61,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // The overlay permission only for the experimental method 2 (Δ16, 28/10: method 1 is the main one).
-        checks = RequirementChecks(this, bridge, withOverlay = overlayMethod.current() == OverlayMethod.APPLICATION)
         setContent {
             PestoTheme {
                 val status by vm.status.collectAsState()
-                StatusScreen(status, checks.order)
+                StatusScreen(status, status.granted.keys.toList())
             }
         }
     }
@@ -77,12 +72,14 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch {
-            val missing = checks.missing(xiaomiShown = prefs.wasXiaomiShown())
+            // The order is read every time: the overlay method may have changed (Δ12).
+            val order = checks.order
+            val missing = checks.missing(xiaomiShown = prefs.wasXiaomiShown(), paired = pairing.isPaired())
             val count = runCatching { history.count() }.getOrNull()
             vm.update {
-                it.copy(granted = checks.order.associateWith { r -> r !in missing }, backendUrl = BuildConfig.BACKEND_URL, dictations = count)
+                it.copy(granted = order.associateWith { r -> r !in missing }, backendUrl = BuildConfig.BACKEND_URL, dictations = count)
             }
-            val next = vm.flow(checks.order).next(missing) ?: return@launch
+            val next = vm.flow(order).next(missing) ?: return@launch
             log.event("permission request=$next missing=$missing")
             request(next)
         }
@@ -90,7 +87,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        vm.flow(checks.order).onStop()
+        vm.onStop()
     }
 
     private fun request(r: Requirement) {
@@ -122,6 +119,8 @@ class MainActivity : ComponentActivity() {
             }
             Requirement.OVERLAY ->
                 open(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri()))
+            // Until the Settings page has the pairing field, the code comes from TestFieldsActivity (debug).
+            Requirement.PAIRING -> toast(R.string.toast_pairing)
         }
     }
 
@@ -156,6 +155,7 @@ private fun labelOf(r: Requirement) = when (r) {
     Requirement.BATTERY -> R.string.req_battery
     Requirement.XIAOMI -> R.string.req_xiaomi
     Requirement.OVERLAY -> R.string.req_overlay
+    Requirement.PAIRING -> R.string.req_pairing
 }
 
 @Preview

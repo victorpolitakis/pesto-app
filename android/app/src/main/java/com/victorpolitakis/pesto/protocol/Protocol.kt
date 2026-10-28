@@ -30,6 +30,8 @@ data class FieldContext(
 @Serializable
 sealed interface ClientMessage
 
+// TODO(later): neutral field names (Δ25): language_hints is Soniox's word. Here, in
+// docs/protocol.md and in protocol.py together, with the tests of both sides.
 @Serializable
 @SerialName("start")
 data class Start(
@@ -82,6 +84,16 @@ data class Final(
 @Serializable
 @SerialName("error")
 data class Error(val code: String, val message: String, val retryable: Boolean) : ServerMessage
+
+/** POST /v1/pair (Δ24): the one-time code of `pesto-server pair`, and a name for this phone. */
+@Serializable
+data class PairRequest(val code: String, @SerialName("device_name") val deviceName: String)
+
+/** The token of this phone. Never logged, never in the APK. */
+@Serializable
+data class PairResponse(val token: String) {
+    override fun toString() = "PairResponse(token=…)"
+}
 
 fun encode(message: ClientMessage): String = protocolJson.encodeToString(ClientMessage.serializer(), message)
 

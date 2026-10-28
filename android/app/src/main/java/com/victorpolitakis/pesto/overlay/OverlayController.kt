@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import com.victorpolitakis.pesto.R
+import com.victorpolitakis.pesto.backend.Incoming
 import com.victorpolitakis.pesto.dictation.Bounds
 import com.victorpolitakis.pesto.dictation.DictationController
 import com.victorpolitakis.pesto.dictation.DictationUi
@@ -150,6 +151,7 @@ class OverlayController(
     private fun errorOf(outcome: Outcome): Int? = when {
         outcome !is Outcome.Failed -> null
         outcome.reason == "no_server" -> R.string.error_no_server
+        outcome.reason == Incoming.UNAUTHORIZED -> R.string.error_unpaired
         outcome.reason.startsWith("mic_") -> R.string.error_mic_blocked
         else -> R.string.error_generic
     }

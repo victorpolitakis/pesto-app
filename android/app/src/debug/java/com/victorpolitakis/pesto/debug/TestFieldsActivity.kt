@@ -12,6 +12,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
+import com.victorpolitakis.pesto.data.PairingRepository
 import com.victorpolitakis.pesto.data.SettingsRepository
 import com.victorpolitakis.pesto.dictation.DictationController
 import com.victorpolitakis.pesto.dictation.DictationUi
@@ -30,6 +31,7 @@ import javax.inject.Inject
 class TestFieldsActivity : ComponentActivity() {
     @Inject lateinit var controller: DictationController
     @Inject lateinit var settings: SettingsRepository
+    @Inject lateinit var pairing: PairingRepository
     private lateinit var first: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,7 +90,8 @@ class TestFieldsActivity : ComponentActivity() {
     /**
      * For tools/smoke.sh, without uiautomator (it suspends accessibility services):
      * `am start ... --es do focus` focuses the first field and opens the keyboard,
-     * `--es do finish` is the ✓ of the panel.
+     * `--es do finish` is the ✓ of the panel, `--es do pair --es code 12345678`
+     * pairs with the code of `pesto-server pair` (the log says the result, not the code).
      */
     private fun handle(intent: Intent) {
         when (intent.getStringExtra("do")) {
@@ -97,6 +100,10 @@ class TestFieldsActivity : ComponentActivity() {
                 getSystemService(InputMethodManager::class.java).showSoftInput(first, 0)
             }
             "finish" -> controller.finish()
+            "pair" -> {
+                val code = intent.getStringExtra("code").orEmpty()
+                lifecycleScope.launch { pairing.pair(code) }
+            }
         }
     }
 

@@ -20,7 +20,13 @@ class MainViewModel : ViewModel() {
     private val _status = MutableStateFlow(StatusState())
     val status: StateFlow<StatusState> = _status.asStateFlow()
 
-    fun flow(order: List<Requirement>): PermissionFlow = flow ?: PermissionFlow(order).also { flow = it }
+    /** A new flow when the order changed (the overlay method, Δ12): what was asked starts over. */
+    fun flow(order: List<Requirement>): PermissionFlow =
+        flow?.takeIf { it.order == order } ?: PermissionFlow(order).also { flow = it }
+
+    fun onStop() {
+        flow?.onStop()
+    }
 
     fun update(transform: (StatusState) -> StatusState) {
         _status.value = transform(_status.value)

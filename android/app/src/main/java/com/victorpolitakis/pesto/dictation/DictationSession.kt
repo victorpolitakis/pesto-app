@@ -38,7 +38,7 @@ sealed interface Outcome {
 
     data object Cancelled : Outcome
 
-    /** E.g. `no_server`, `mic_blocked`, `mic_error`, or a backend error code. */
+    /** E.g. `no_server`, `unauthorized` (not paired, Δ24), `mic_blocked`, `mic_error`, or a backend error code. */
     data class Failed(val reason: String) : Outcome
 }
 
@@ -130,6 +130,7 @@ class DictationSession(
     }
 
     private suspend fun receive(conn: BackendConnection) {
+        var closedReason: String? = null
         for (item in conn.incoming) {
             when (item) {
                 is Incoming.Message -> when (val m = item.message) {
@@ -152,6 +153,7 @@ class DictationSession(
                 }
                 is Incoming.Closed -> {
                     log.event("connection closed failure=${item.failure} reason=${item.reason}")
+                    closedReason = item.reason
                     break
                 }
             }
@@ -160,6 +162,7 @@ class DictationSession(
             val text = _state.value.text
             end(
                 when {
+                    !ready && closedReason == Incoming.UNAUTHORIZED -> Outcome.Failed(Incoming.UNAUTHORIZED)
                     !ready -> Outcome.Failed("no_server")
                     text.isNotBlank() -> Outcome.ConnectionLost(text)
                     else -> Outcome.Failed("connection_lost")
