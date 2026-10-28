@@ -1,6 +1,10 @@
 package com.victorpolitakis.pesto.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.victorpolitakis.pesto.BuildConfig
 import com.victorpolitakis.pesto.accessibility.AccessibilityInserter
@@ -13,13 +17,15 @@ import com.victorpolitakis.pesto.data.DictationHistory
 import com.victorpolitakis.pesto.data.HistoryRepository
 import com.victorpolitakis.pesto.data.MIGRATION_1_2
 import com.victorpolitakis.pesto.data.PestoDatabase
+import com.victorpolitakis.pesto.data.SettingsRepository
 import com.victorpolitakis.pesto.data.TermDao
 import com.victorpolitakis.pesto.dictation.Delivery
 import com.victorpolitakis.pesto.dictation.OutcomeDelivery
-import com.victorpolitakis.pesto.dictation.WallClock
 import com.victorpolitakis.pesto.insert.Inserter
+import com.victorpolitakis.pesto.overlay.OverlayMethodProvider
 import com.victorpolitakis.pesto.util.AndroidLog
 import com.victorpolitakis.pesto.util.PestoLog
+import com.victorpolitakis.pesto.util.WallClock
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -52,6 +58,9 @@ abstract class AppModule {
 
     @Binds abstract fun history(impl: HistoryRepository): DictationHistory
 
+    // The only binding of the overlay method, for both build types (Δ12).
+    @Binds abstract fun overlayMethod(impl: SettingsRepository): OverlayMethodProvider
+
     companion object {
         @Provides @Singleton @AppScope
         fun appScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -78,6 +87,10 @@ abstract class AppModule {
         @Provides fun termDao(db: PestoDatabase): TermDao = db.terms()
 
         @Provides fun appProfileDao(db: PestoDatabase): AppProfileDao = db.appProfiles()
+
+        @Provides @Singleton
+        fun settingsStore(@ApplicationContext context: Context): DataStore<Preferences> =
+            PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("settings") }
 
         @Provides fun wallClock() = WallClock(System::currentTimeMillis)
     }

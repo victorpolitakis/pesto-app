@@ -7,6 +7,7 @@ import com.victorpolitakis.pesto.di.AppScope
 import com.victorpolitakis.pesto.protocol.FieldContext
 import com.victorpolitakis.pesto.protocol.Start
 import com.victorpolitakis.pesto.util.PestoLog
+import com.victorpolitakis.pesto.util.WallClock
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

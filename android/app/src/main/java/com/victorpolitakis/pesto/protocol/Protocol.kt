@@ -91,3 +91,6 @@ const val SAMPLE_RATE = 16000
 
 /** 100 ms of pcm_s16le mono, as recommended by docs/protocol.md. */
 const val FRAME_BYTES = SAMPLE_RATE / 10 * 2
+
+/** The backend's limit on [Start.terms]: Σ (characters of a term + 1). Above it, `bad_request`. */
+const val MAX_TERMS_CHARS = 10_000

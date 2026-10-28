@@ -2,6 +2,7 @@ package com.victorpolitakis.pesto.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SearchTextTest {
@@ -62,5 +63,36 @@ class SearchTextTest {
         assertNull(SearchText.ftsQuery("α"))
         assertNull(SearchText.ftsQuery(" ά , "))
         assertEquals("αβ*", SearchText.ftsQuery("αβ"))
+    }
+
+    @Test
+    fun `the words found are ranges of the real text, with its accents`() {
+        val text = "Καλημέρα Γιώργο, το meeting πάει για την Πέμπτη."
+        assertEquals(listOf(0..7, 41..46), SearchText.matches(text, "καλημερα πεμπ"))
+        assertEquals(listOf(20..26), SearchText.matches(text, "MEET"))
+        assertEquals(emptyList<IntRange>(), SearchText.matches(text, "αύριο"))
+    }
+
+    @Test
+    fun `a short text is the snippet itself, on one line`() {
+        assertEquals(Snippet("Γεια σου, τι κάνεις;", listOf(5..7)), SearchText.snippet("Γεια\nσου, τι κάνεις;", "σου"))
+    }
+
+    @Test
+    fun `a long text is cut around the first word found`() {
+        val text = "Αρχή. " + "άλλη λέξη ".repeat(30) + "Καλημέρα Γιώργο. " + "τέλος ".repeat(30)
+        val s = SearchText.snippet(text, "γιωργο")
+        assertTrue(s.text.startsWith("…"))
+        assertTrue(s.text.endsWith("…"))
+        assertEquals(listOf("Γιώργο"), s.highlights.map { s.text.substring(it) })
+        assertTrue(s.text.length <= 122)
+    }
+
+    @Test
+    fun `without a match the snippet is the start of the text`() {
+        val s = SearchText.snippet("λέξη ".repeat(50), "αύριο")
+        assertEquals(emptyList<IntRange>(), s.highlights)
+        assertTrue(s.text.startsWith("λέξη λέξη"))
+        assertTrue(s.text.endsWith("…"))
     }
 }

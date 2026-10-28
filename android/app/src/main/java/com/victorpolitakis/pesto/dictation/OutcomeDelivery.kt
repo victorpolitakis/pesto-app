@@ -5,6 +5,7 @@ import com.victorpolitakis.pesto.data.NewDictation
 import com.victorpolitakis.pesto.insert.Inserter
 import com.victorpolitakis.pesto.protocol.Start
 import com.victorpolitakis.pesto.util.PestoLog
+import com.victorpolitakis.pesto.util.WallClock
 import javax.inject.Inject
 
 /**
@@ -39,9 +40,4 @@ class OutcomeDelivery @Inject constructor(
             ),
         )
     }
-}
-
-/** Wall-clock time in epoch milliseconds, injectable for tests. */
-fun interface WallClock {
-    fun now(): Long
 }

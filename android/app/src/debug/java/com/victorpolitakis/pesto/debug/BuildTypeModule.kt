@@ -5,8 +5,6 @@ import com.victorpolitakis.pesto.audio.AudioCapture
 import com.victorpolitakis.pesto.audio.AudioFrame
 import com.victorpolitakis.pesto.audio.AudioRecordCapture
 import com.victorpolitakis.pesto.audio.level
-import com.victorpolitakis.pesto.overlay.OverlayMethod
-import com.victorpolitakis.pesto.overlay.OverlayMethodProvider
 import com.victorpolitakis.pesto.protocol.FRAME_BYTES
 import dagger.Binds
 import dagger.Module
@@ -18,26 +16,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.io.File
 import javax.inject.Inject
-import javax.inject.Singleton
-
-/**
- * Switch of the overlay method (Δ16, decided 28/10 on the POCO): method 1
- * (ACCESSIBILITY) is the main one, method 2 (APPLICATION) stays as an
- * experimental option. TODO(phase 3): move this switch to Settings, for the
- * release build too.
- */
-@Singleton
-class DebugOverlayMethod @Inject constructor(@param:ApplicationContext context: Context) : OverlayMethodProvider {
-    private val prefs = context.getSharedPreferences("debug_overlay", Context.MODE_PRIVATE)
-
-    override fun current(): OverlayMethod =
-        OverlayMethod.valueOf(prefs.getString("method", OverlayMethod.ACCESSIBILITY.name)!!)
-
-    fun toggle() {
-        val next = if (current() == OverlayMethod.ACCESSIBILITY) OverlayMethod.APPLICATION else OverlayMethod.ACCESSIBILITY
-        prefs.edit().putString("method", next.name).apply()
-    }
-}
 
 /**
  * Debug build only: if `files/debug_audio.wav` (16 kHz mono s16le) exists, it is
@@ -80,10 +58,9 @@ class DebugAudioCapture @Inject constructor(
     }
 }
 
+/** Debug build: the audio source above. The overlay method comes from Settings, as in release (Δ12). */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class BuildTypeModule {
-    @Binds abstract fun overlayMethod(impl: DebugOverlayMethod): OverlayMethodProvider
-
     @Binds abstract fun audio(impl: DebugAudioCapture): AudioCapture
 }

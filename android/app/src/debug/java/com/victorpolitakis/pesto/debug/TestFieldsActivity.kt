@@ -12,35 +12,36 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
+import com.victorpolitakis.pesto.data.SettingsRepository
 import com.victorpolitakis.pesto.dictation.DictationController
 import com.victorpolitakis.pesto.dictation.DictationUi
 import com.victorpolitakis.pesto.dictation.Trigger
+import com.victorpolitakis.pesto.overlay.OverlayMethod
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Debug build only. Fixed test fields for the 10 insertion scenarios and the
- * smoke test, the controls to dictate without the overlay, and the
- * overlay method switch (Δ16), until it moves to Settings in phase 3.
+ * Debug build only. Fixed test fields (six) for the insertion scenarios and
+ * the smoke test, the controls to dictate without the overlay, and a switch
+ * of the overlay method, which writes the same setting as Settings (Δ12).
  */
 @AndroidEntryPoint
 class TestFieldsActivity : ComponentActivity() {
     @Inject lateinit var controller: DictationController
-    @Inject lateinit var overlayMethod: DebugOverlayMethod
+    @Inject lateinit var settings: SettingsRepository
     private lateinit var first: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val status = TextView(this).apply { tag = "status" }
         val method = Button(this)
-        fun showMethod() {
-            method.text = "Overlay: ${overlayMethod.current()}"
-        }
-        showMethod()
         method.setOnClickListener {
-            overlayMethod.toggle()
-            showMethod()
+            val next = if (settings.current() == OverlayMethod.ACCESSIBILITY) OverlayMethod.APPLICATION else OverlayMethod.ACCESSIBILITY
+            lifecycleScope.launch { settings.setOverlayMethod(next) }
+        }
+        lifecycleScope.launch {
+            settings.settings.collect { method.text = "Overlay: ${it.overlayMethod}" }
         }
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text = label

@@ -34,4 +34,27 @@
     <string name="cd_pause">Παύση</string>
     <string name="cd_resume">Συνέχεια</string>
     <string name="cd_finish">Τέλος</string>
+
+    <!--
+      C9: the ready-made profiles of the backend (ids in ProfilesCatalog). Only a name and one
+      sentence of what each does, never the prompt. Proposals: Victor writes the final ones in phase 4.
+    -->
+    <string name="profile_raw">Χωρίς αλλαγές</string>
+    <string name="profile_raw_description">Το κείμενο όπως το έγραψε η αναγνώριση φωνής, χωρίς επεξεργασία.</string>
+    <string name="profile_note">Σημειώσεις</string>
+    <string name="profile_note_description">Σύντομες, καθαρές σημειώσεις. Ό,τι απαριθμείς γίνεται λίστα.</string>
+    <string name="profile_chatter">Συνομιλία</string>
+    <string name="profile_chatter_description">Φυσικό, φιλικό και σύντομο μήνυμα, όπως σε φίλο.</string>
+    <string name="profile_mail">Email</string>
+    <string name="profile_mail_description">Καθαρό, ευγενικό email σε παραγράφους, με προσφώνηση και κλείσιμο.</string>
+    <string name="profile_professional">Επαγγελματικό</string>
+    <string name="profile_professional_description">Σαφές, επίσημο και ευγενικό κείμενο για επαγγελματική επικοινωνία.</string>
+
+    <!-- C11: the languages of the speech recognition (Δ14). -->
+    <string name="language_el">Ελληνικά</string>
+    <string name="language_en">Αγγλικά</string>
+    <string name="language_de">Γερμανικά</string>
+    <string name="language_fr">Γαλλικά</string>
+    <string name="language_es">Ισπανικά</string>
+    <string name="language_it">Ιταλικά</string>
 </resources>
