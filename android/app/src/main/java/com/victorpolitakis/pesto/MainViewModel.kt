@@ -1,24 +1,27 @@
 package com.victorpolitakis.pesto
 
 import androidx.lifecycle.ViewModel
+import com.victorpolitakis.pesto.nav.SettingsSection
 import com.victorpolitakis.pesto.permissions.PermissionFlow
 import com.victorpolitakis.pesto.permissions.Requirement
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 
-/** What the status page shows. Temporary page: Home replaces it in phase 3. */
-data class StatusState(
-    val granted: Map<Requirement, Boolean> = emptyMap(),
-    val backendUrl: String = "",
-    val dictations: Int? = null,
-)
-
-/** Keeps the permission flow across rotations, so "asked in this visit" is not forgotten. */
+/**
+ * Keeps the permission flow across rotations, so "asked in this visit" is not
+ * forgotten, and passes C3's requests to the navigation (Activity → NavHost).
+ */
 class MainViewModel : ViewModel() {
     private var flow: PermissionFlow? = null
-    private val _status = MutableStateFlow(StatusState())
-    val status: StateFlow<StatusState> = _status.asStateFlow()
+    private val settingsRequests = Channel<SettingsSection>(Channel.BUFFERED)
+
+    /** The sections of Settings that C3 opens: the pairing (Δ24). */
+    val openSettings: Flow<SettingsSection> = settingsRequests.receiveAsFlow()
+
+    fun requestSettings(section: SettingsSection) {
+        settingsRequests.trySend(section)
+    }
 
     /** A new flow when the order changed (the overlay method, Δ12): what was asked starts over. */
     fun flow(order: List<Requirement>): PermissionFlow =
@@ -26,9 +29,5 @@ class MainViewModel : ViewModel() {
 
     fun onStop() {
         flow?.onStop()
-    }
-
-    fun update(transform: (StatusState) -> StatusState) {
-        _status.value = transform(_status.value)
     }
 }

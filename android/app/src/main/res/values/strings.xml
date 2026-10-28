@@ -19,7 +19,7 @@
     <string name="error_generic">Η υπαγόρευση απέτυχε</string>
     <string name="copied_to_clipboard">Αντιγράφηκε, κάνε επικόλληση</string>
 
-    <!-- C3 and the status page. TODO(phase 3): Home replaces the status page. -->
+    <!-- C3, and the permissions in Settings. -->
     <string name="req_microphone">Μικρόφωνο</string>
     <string name="req_accessibility">Accessibility service του Pesto</string>
     <string name="req_battery">Εξαίρεση από τη βελτιστοποίηση μπαταρίας</string>
@@ -31,8 +31,6 @@
     <string name="toast_enable_accessibility">Ενεργοποίησε το Pesto στις Downloaded apps</string>
     <string name="toast_restart_accessibility">Το Pesto είναι ενεργό αλλά δεν τρέχει: απενεργοποίησέ το και ενεργοποίησέ το ξανά</string>
     <string name="toast_mic_settings">Δώσε την άδεια μικροφώνου από τις Άδειες της εφαρμογής</string>
-    <string name="status_backend">Backend: %1$s</string>
-    <string name="status_dictations">Υπαγορεύσεις στη βάση: %1$d</string>
 
     <string name="cd_mic">Υπαγόρευση με το Pesto</string>
     <string name="cd_cancel">Ακύρωση</string>
@@ -54,6 +52,23 @@
     <string name="profile_mail_description">Καθαρό, ευγενικό email σε παραγράφους, με προσφώνηση και κλείσιμο.</string>
     <string name="profile_professional">Επαγγελματικό</string>
     <string name="profile_professional_description">Σαφές, επίσημο και ευγενικό κείμενο για επαγγελματική επικοινωνία.</string>
+
+    <!-- Navigation (Δ20) and what all screens share. TODO(phase 6): names and texts of the bars, with the design. -->
+    <string name="tab_home">Αρχική</string>
+    <string name="tab_profiles">Προφίλ</string>
+    <string name="tab_dictionary">Λεξικό</string>
+    <string name="tab_history">Ιστορικό</string>
+    <string name="cd_back">Πίσω</string>
+    <string name="undo">Αναίρεση</string>
+    <string name="title_profiles">Προφίλ</string>
+    <string name="title_dictionary">Λεξικό</string>
+    <string name="title_history">Ιστορικό</string>
+    <string name="title_settings">Ρυθμίσεις</string>
+    <string name="title_search">Αναζήτηση</string>
+    <string name="title_analytics">Στατιστικά</string>
+    <string name="title_apps">Εφαρμογές</string>
+    <string name="title_dictation">Υπαγόρευση</string>
+    <string name="skeleton">Τα δεδομένα αυτής της οθόνης έρχονται στο επόμενο βήμα.</string>
 
     <!-- C11: the languages of the speech recognition (Δ14). -->
     <string name="language_el">Ελληνικά</string>
