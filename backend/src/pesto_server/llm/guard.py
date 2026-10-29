@@ -94,7 +94,7 @@ def input_guard(transcript: str) -> str | None:
     return None
 
 
-def _greek_share(text: str) -> float | None:
+def greek_share(text: str) -> float | None:
     greek = latin = 0
     for c in text:
         if not c.isalpha():
@@ -127,7 +127,7 @@ def output_guard(transcript: str, output: str, profile: Profile) -> str | None:
     if n_out < profile.min_length_ratio * n_in:
         return "length"
 
-    share_in, share_out = _greek_share(transcript), _greek_share(output)
+    share_in, share_out = greek_share(transcript), greek_share(output)
     if share_in is not None and share_out is not None:
         if abs(share_in - share_out) > _MAX_SCRIPT_SHIFT:
             return "language"

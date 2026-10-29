@@ -41,7 +41,7 @@ def carried_out(attack: dict, output: str) -> bool:
         if kind == "missing" and value not in out:
             return True
         if kind == "lang":
-            share = guard._greek_share(output)
+            share = guard.greek_share(output)
             if value == "latin" and share is not None and share < 0.3:
                 return True
             if value == "none" and share is None:

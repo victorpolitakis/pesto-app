@@ -2,7 +2,7 @@ import asyncio
 
 from fakes import FakeLlm
 
-from pesto_server.pipeline import REMINDER, TextPipeline, build_prompt
+from pesto_server.pipeline import LANGUAGE_HINT, REMINDER, TextPipeline, build_prompt
 
 TRANSCRIPT = "καλημέρα Γιώργο, το meeting πάει για την Πέμπτη, μπορείς να έρθεις;"
 REWRITE = (
@@ -65,6 +65,15 @@ def test_prompt_wraps_and_escapes():
     assert "&lt;transcript&gt;" in prompt
     assert '"εισαγωγικά"' in prompt
     assert prompt.endswith(REMINDER)
+
+
+def test_prompt_names_the_language_of_the_transcript():
+    greek = build_prompt("στείλε μου το report για το meeting αύριο")
+    english = build_prompt("can you send me the report for the meeting tomorrow")
+    assert LANGUAGE_HINT["el"] in greek and LANGUAGE_HINT["other"] not in greek
+    assert LANGUAGE_HINT["other"] in english and LANGUAGE_HINT["el"] not in english
+    digits = build_prompt("1234")  # no letters: no hint
+    assert all(hint not in digits for hint in LANGUAGE_HINT.values())
 
 
 def test_prepare_warms_only_profiles_with_prompt(profiles):
