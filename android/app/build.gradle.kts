@@ -39,6 +39,14 @@ android {
         }
     }
 
+    // The UI follows the phone's language: Greek in Greek, English in any other. With
+    // unqualifiedResLocale (res/resources.properties) the default values/ is en-US, and
+    // generateLocaleConfig lists en-US and el, so Android 13+ shows Pesto in System
+    // Settings > Apps > Language. No language option of our own.
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

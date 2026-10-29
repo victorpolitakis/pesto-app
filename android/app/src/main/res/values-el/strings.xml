@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="el">
+    <string name="app_name">Pesto</string>
+
+    <string name="service_label">Pesto</string>
+    <string name="service_description">Το Pesto δείχνει ένα κουμπί μικροφώνου πάνω στο keyboard σου και γράφει στο πεδίο ό,τι υπαγορεύεις. Διαβάζει μόνο το πεδίο που έχει focus. Δεν εμφανίζεται σε πεδία κωδικού.</string>
+
+    <!-- Listening panel. TODO(phase 6): texts and look of the states are improved with the design. -->
+    <string name="status_connecting">Σύνδεση…</string>
+    <string name="status_listening">Ακούω…</string>
+    <string name="status_paused">Παύση</string>
+    <string name="status_finishing">Ολοκλήρωση…</string>
+    <!-- The status and the name of the profile of the dictation (C9). -->
+    <string name="panel_status_profile">%1$s · %2$s</string>
+    <!-- TODO(phase 6): temporary error messages, improved with the design. -->
+    <string name="error_no_server">Δεν βρέθηκε ο server</string>
+    <string name="error_unpaired">Η συσκευή δεν είναι συνδεδεμένη με τον backend: άνοιξε το Pesto</string>
+    <string name="error_mic_blocked">Το μικρόφωνο είναι μπλοκαρισμένο</string>
+    <string name="error_generic">Η υπαγόρευση απέτυχε</string>
+    <string name="copied_to_clipboard">Αντιγράφηκε, κάνε επικόλληση</string>
+
+    <!-- C3, and the permissions in Settings. -->
+    <string name="req_microphone">Μικρόφωνο</string>
+    <string name="req_accessibility">Accessibility service του Pesto</string>
+    <string name="req_battery">Εξαίρεση από τη βελτιστοποίηση μπαταρίας</string>
+    <string name="req_xiaomi">Xiaomi: Autostart, μπαταρία «No restrictions», κλείδωμα στα πρόσφατα (ζητείται μία φορά)</string>
+    <string name="toast_xiaomi">Ενεργοποίησε το Autostart και βάλε την μπαταρία σε «No restrictions». Μετά κλείδωσε το Pesto στα πρόσφατα</string>
+    <string name="req_overlay">Εμφάνιση πάνω από άλλες εφαρμογές (experimental μέθοδος 2)</string>
+    <string name="req_pairing">Σύνδεση της συσκευής με τον backend (κωδικός pairing)</string>
+    <string name="toast_enable_accessibility">Ενεργοποίησε το Pesto στις Downloaded apps</string>
+    <string name="toast_restart_accessibility">Το Pesto είναι ενεργό αλλά δεν τρέχει: απενεργοποίησέ το και ενεργοποίησέ το ξανά</string>
+    <string name="toast_mic_settings">Δώσε την άδεια μικροφώνου από τις Άδειες της εφαρμογής</string>
+
+    <string name="cd_mic">Υπαγόρευση με το Pesto</string>
+    <string name="cd_cancel">Ακύρωση</string>
+    <string name="cd_pause">Παύση</string>
+    <string name="cd_resume">Συνέχεια</string>
+    <string name="cd_finish">Τέλος</string>
+
+    <!--
+      C9: the ready-made profiles of the backend (ids in ProfilesCatalog). Only a name and one
+      sentence of what each does, never the prompt. Proposals: Victor writes the final ones in phase 4.
+    -->
+    <string name="profile_raw">Χωρίς αλλαγές</string>
+    <string name="profile_raw_description">Το κείμενο όπως το έγραψε η αναγνώριση φωνής, χωρίς επεξεργασία.</string>
+    <string name="profile_note">Σημειώσεις</string>
+    <string name="profile_note_description">Σύντομες, καθαρές σημειώσεις. Ό,τι απαριθμείς γίνεται λίστα.</string>
+    <string name="profile_chatter">Συνομιλία</string>
+    <string name="profile_chatter_description">Φυσικό, φιλικό και σύντομο μήνυμα, όπως σε φίλο.</string>
+    <string name="profile_mail">Email</string>
+    <string name="profile_mail_description">Καθαρό, ευγενικό email σε παραγράφους, με προσφώνηση και κλείσιμο.</string>
+    <string name="profile_professional">Επαγγελματικό</string>
+    <string name="profile_professional_description">Σαφές, επίσημο και ευγενικό κείμενο για επαγγελματική επικοινωνία.</string>
+
+    <!-- Navigation (Δ20) and what all screens share. TODO(phase 6): names and texts of the bars, with the design. -->
+    <string name="tab_home">Αρχική</string>
+    <string name="tab_profiles">Προφίλ</string>
+    <string name="tab_dictionary">Λεξικό</string>
+    <string name="tab_history">Ιστορικό</string>
+    <string name="cd_back">Πίσω</string>
+    <string name="undo">Αναίρεση</string>
+    <string name="title_profiles">Προφίλ</string>
+    <string name="title_dictionary">Λεξικό</string>
+    <string name="title_history">Ιστορικό</string>
+    <string name="title_settings">Ρυθμίσεις</string>
+    <string name="title_search">Αναζήτηση</string>
+    <string name="title_analytics">Στατιστικά</string>
+    <string name="title_apps">Εφαρμογές</string>
+    <string name="title_dictation">Υπαγόρευση</string>
+    <string name="copy">Αντιγραφή</string>
+    <string name="delete">Διαγραφή</string>
+    <string name="value_none">—</string>
+    <string name="app_none">Χωρίς εφαρμογή</string>
+    <plurals name="dictations">
+        <item quantity="one">%d υπαγόρευση</item>
+        <item quantity="other">%d υπαγορεύσεις</item>
+    </plurals>
+    <plurals name="words">
+        <item quantity="one">%d λέξη</item>
+        <item quantity="other">%d λέξεις</item>
+    </plurals>
+    <!-- Δ23: «Σήμερα, 18:26», «Χθες, 18:26». -->
+    <string name="time_today">Σήμερα</string>
+    <string name="time_yesterday">Χθες</string>
+
+    <!-- C8: History, its detail, and Search. TODO(phase 6): the texts, with the design. -->
+    <string name="history_empty">Καμία υπαγόρευση ακόμα. Πάτησε το κουμπί του Pesto πάνω στο πληκτρολόγιο.</string>
+    <string name="history_deleted">Η υπαγόρευση διαγράφηκε</string>
+    <string name="history_detail_gone">Η υπαγόρευση δεν υπάρχει πια</string>
+    <string name="search_hint">Αναζήτηση στις υπαγορεύσεις</string>
+    <string name="search_too_short">Γράψε τουλάχιστον 2 γράμματα</string>
+    <string name="search_none">Δεν βρέθηκε τίποτα</string>
+    <plurals name="results">
+        <item quantity="one">%d αποτέλεσμα</item>
+        <item quantity="other">%d αποτελέσματα</item>
+    </plurals>
+    <!-- The record of one dictation, for the data check of phase 4. -->
+    <string name="detail_data">Στοιχεία της εγγραφής</string>
+    <string name="detail_raw_text">Κείμενο της αναγνώρισης (πριν από το προφίλ)</string>
+    <string name="detail_app">Εφαρμογή</string>
+    <string name="detail_input_type">Τύπος πεδίου</string>
+    <string name="detail_started">Έναρξη (πάτημα)</string>
+    <string name="detail_ended">Τέλος (εισαγωγή)</string>
+    <string name="detail_duration">Διάρκεια</string>
+    <string name="detail_audio">Ήχος</string>
+    <string name="detail_words">Λέξεις που ειπώθηκαν</string>
+    <string name="detail_output_words">Λέξεις του κειμένου</string>
+    <string name="detail_wpm">Λέξεις το λεπτό</string>
+    <string name="detail_profile">Προφίλ</string>
+    <string name="detail_fallback">Λόγος για το σκέτο κείμενο</string>
+    <string name="detail_end_reason">Πώς τελείωσε</string>
+    <string name="detail_insert_method">Μέθοδος εισαγωγής</string>
+    <string name="detail_stt_ms">Χρόνος αναγνώρισης</string>
+    <string name="detail_llm_ms">Χρόνος του προφίλ</string>
+    <string name="detail_total_ms">Συνολικός χρόνος</string>
+    <string name="value_seconds">%1$.1f s</string>
+    <string name="value_ms">%1$d ms</string>
+    <string name="value_with_id">%1$s (%2$s)</string>
+
+    <!-- C2: the Dictionary. TODO(phase 6): the texts, with the design. -->
+    <plurals name="terms">
+        <item quantity="one">%d όρος</item>
+        <item quantity="other">%d όροι</item>
+    </plurals>
+    <string name="dictionary_remaining">Απομένουν %1$,d από %2$,d χαρακτήρες</string>
+    <string name="dictionary_empty">Κανένας όρος ακόμα. Πρόσθεσε ονόματα και λέξεις που η αναγνώριση γράφει λάθος, όπως ένα επώνυμο.</string>
+    <string name="dictionary_full">Δεν χωράει άλλος όρος. Σβήσε ή μίκρυνε κάποιον.</string>
+    <string name="term_new">Νέος όρος</string>
+    <string name="term_edit">Αλλαγή όρου</string>
+    <string name="term_label">Όρος</string>
+    <string name="term_duplicate">Ο όρος υπάρχει ήδη</string>
+    <string name="term_empty">Γράψε έναν όρο</string>
+    <string name="term_too_long">Δεν χωράει στο όριο των χαρακτήρων</string>
+    <plurals name="term_left">
+        <item quantity="one">Απομένει %d χαρακτήρας</item>
+        <item quantity="other">Απομένουν %d χαρακτήρες</item>
+    </plurals>
+    <plurals name="term_over">
+        <item quantity="one">Δεν χωράει: %d χαρακτήρας πάνω από το όριο</item>
+        <item quantity="other">Δεν χωράει: %d χαρακτήρες πάνω από το όριο</item>
+    </plurals>
+    <string name="term_deleted">Ο όρος διαγράφηκε</string>
+    <string name="cd_delete_term">Διαγραφή του όρου %1$s</string>
+    <string name="save">Αποθήκευση</string>
+    <string name="cancel">Ακύρωση</string>
+
+    <!-- C9: Profiles and Profile detail. TODO(phase 6): the texts, with the design. -->
+    <string name="profiles_intro">Τι κάνει το Pesto στο κείμενο πριν το γράψει. Κάθε εφαρμογή παίρνει το δικό της προφίλ (Εφαρμογές), αλλιώς την προεπιλογή.</string>
+    <string name="profile_default">Προεπιλογή</string>
+    <string name="profile_usage">%1$s · %2$s</string>
+    <plurals name="apps">
+        <item quantity="one">%d εφαρμογή</item>
+        <item quantity="other">%d εφαρμογές</item>
+    </plurals>
+    <string name="profile_set_default">Ορισμός ως προεπιλογή</string>
+    <string name="profile_is_default">Αυτό είναι η προεπιλογή</string>
+    <string name="profile_default_explained">Η προεπιλογή ισχύει σε κάθε εφαρμογή χωρίς δικό της προφίλ.</string>
+    <plurals name="profile_dictations">
+        <item quantity="one">%d υπαγόρευση με αυτό το προφίλ</item>
+        <item quantity="other">%d υπαγορεύσεις με αυτό το προφίλ</item>
+    </plurals>
+    <string name="profile_apps">Εφαρμογές με αυτό το προφίλ</string>
+    <string name="profile_no_apps">Καμία ακόμα. Μια εφαρμογή εμφανίζεται εδώ μετά την πρώτη υπαγόρευση σε αυτήν.</string>
+    <string name="profile_app_automatic">Αυτόματα, ως προεπιλογή</string>
+    <string name="profile_gone">Αυτό το προφίλ δεν υπάρχει πια</string>
+
+    <!-- C10: Home, after the sketch. TODO(phase 6): the texts, with the design. -->
+    <string name="cd_chatbot">Βοηθός</string>
+    <string name="stat_minutes_saved">Λεπτά που κέρδισες</string>
+    <!-- Δ8: the screen says what the minutes are counted against. -->
+    <string name="stat_minutes_saved_note">σε σχέση με %1$d λέξεις/λεπτό πληκτρολόγηση</string>
+    <string name="stat_words_week">Λέξεις αυτή την εβδομάδα</string>
+    <string name="stat_dictations">Φορές χρήσης</string>
+    <string name="stat_wpm">Λέξεις το λεπτό (WPM)</string>
+    <string name="stat_today">σήμερα: %1$s</string>
+    <string name="cd_page">Σελίδα %1$d από %2$d</string>
+    <string name="home_add_styles">Προσθήκη ύφους</string>
+    <string name="home_edit">Επεξεργασία</string>
+    <string name="home_languages">Γλώσσες</string>
+    <string name="home_more">Περισσότερα</string>
+    <string name="home_more_soon">Σύντομα, νέες επιλογές</string>
+    <string name="home_recent">Τελευταίες υπαγορεύσεις</string>
+    <string name="home_all">Όλες</string>
+    <string name="value_int">%1$,d</string>
+    <string name="value_decimal">%1$.1f</string>
+
+    <!-- C10: Apps. -->
+    <string name="apps_empty">Καμία εφαρμογή ακόμα. Μια εφαρμογή εμφανίζεται εδώ μετά την πρώτη υπαγόρευση σε αυτήν.</string>
+    <string name="apps_usage">%1$s · τελευταία %2$s</string>
+    <string name="apps_automatic">Αυτόματο (%1$s)</string>
+    <string name="apps_automatic_option">Αυτόματο: η προεπιλογή (%1$s)</string>
+
+    <!-- C10: Analytics. -->
+    <string name="analytics_empty">Κανένα στατιστικό ακόμα. Οι αριθμοί βγαίνουν από το Ιστορικό, μετά την πρώτη υπαγόρευση.</string>
+    <string name="analytics_totals">Σύνολα</string>
+    <string name="analytics_words">Λέξεις</string>
+    <string name="analytics_dictations">Υπαγορεύσεις</string>
+    <string name="analytics_speech_minutes">Λεπτά ομιλίας</string>
+    <string name="analytics_per_day">Λέξεις ανά μέρα</string>
+    <plurals name="days">
+        <item quantity="one">%d μέρα</item>
+        <item quantity="other">%d μέρες</item>
+    </plurals>
+    <string name="cd_day_bar">%1$s: %2$s, %3$s</string>
+    <string name="analytics_per_app">Ανά εφαρμογή</string>
+    <string name="analytics_per_profile">Ανά προφίλ</string>
+    <string name="analytics_reliability">Αξιοπιστία</string>
+    <string name="analytics_no_fallback">Κανένας: το προφίλ εφαρμόστηκε</string>
+
+    <!-- C11: Settings. TODO(phase 6): the texts, with the design. -->
+    <string name="settings_languages">Γλώσσες</string>
+    <string name="settings_languages_explained">Οι γλώσσες που περιμένει η αναγνώριση ομιλίας. Με δύο, μπορείς να τις ανακατεύεις στην ίδια πρόταση.</string>
+    <string name="settings_primary_language">Κύρια γλώσσα</string>
+    <string name="settings_secondary_language">Δεύτερη γλώσσα</string>
+    <string name="settings_no_language">Καμία</string>
+    <string name="settings_strict">Αυστηρά μόνο αυτές</string>
+    <string name="settings_strict_explained">Η αναγνώριση γράφει μόνο αυτές τις γλώσσες, ακόμα κι αν ακούσει άλλη.</string>
+    <string name="settings_default_profile">Προεπιλεγμένο προφίλ</string>
+    <string name="settings_permissions">Άδειες</string>
+    <string name="settings_granted">Εντάξει</string>
+    <string name="settings_missing">Λείπει</string>
+    <string name="settings_open">Άνοιγμα</string>
+    <string name="settings_overlay">Μέθοδος του κουμπιού</string>
+    <string name="settings_overlay_accessibility">Accessibility (προτεινόμενη)</string>
+    <string name="settings_overlay_application">Εμφάνιση πάνω από εφαρμογές (πειραματική)</string>
+    <!-- Δ12: what method 2 costs. -->
+    <string name="settings_overlay_application_explained">Θέλει μία άδεια παραπάνω, και το Android δείχνει μόνιμη ειδοποίηση («Το Pesto εμφανίζεται πάνω από άλλες εφαρμογές») όσο είναι επιλεγμένη.</string>
+    <string name="settings_xiaomi">Xiaomi</string>
+    <string name="settings_xiaomi_explained">Κλείδωσε το Pesto στα πρόσφατα, αλλιώς ένα swipe σταματά το service.</string>
+    <string name="settings_xiaomi_open">Ρυθμίσεις Xiaomi</string>
+    <string name="settings_backend">Σύνδεση με τον backend</string>
+    <string name="settings_backend_url">Διεύθυνση</string>
+    <string name="settings_backend_status">Ο backend</string>
+    <string name="settings_backend_checking">Έλεγχος…</string>
+    <string name="settings_backend_answers">Απαντά</string>
+    <string name="settings_backend_no_answer">Δεν απαντά</string>
+    <string name="settings_backend_check">Έλεγχος</string>
+    <string name="settings_paired">Συνδεδεμένη συσκευή</string>
+    <string name="settings_yes">Ναι</string>
+    <string name="settings_no">Όχι</string>
+    <string name="settings_pairing_explained">Τρέξε «pesto-server pair» στο Mac και γράψε εδώ τον κωδικό των 8 ψηφίων. Λήγει σε 10 λεπτά.</string>
+    <string name="settings_pairing_code">Κωδικός σύνδεσης</string>
+    <string name="settings_pair">Σύνδεση</string>
+    <string name="settings_pairing_wrong">Λάθος ή ληγμένος κωδικός. Φτιάξε νέο με «pesto-server pair».</string>
+    <string name="settings_pairing_failed">Ο backend δεν απάντησε. Δοκίμασε ξανά.</string>
+    <string name="settings_pairing_done">Η συσκευή συνδέθηκε.</string>
+    <string name="settings_unpair">Αποσύνδεση</string>
+    <string name="settings_unpair_explained">Ξεχνά τη σύνδεση σε αυτό το κινητό. Στο Mac, το «pesto-server revoke» τη σβήνει και από τον backend.</string>
+    <!-- Δ26: what goes where, without the names of the providers. -->
+    <string name="settings_privacy">Απόρρητο</string>
+    <string name="settings_privacy_audio">Ο ήχος, όσο μιλάς, πηγαίνει στον backend σου και από εκεί σε μια υπηρεσία αναγνώρισης ομιλίας, που τον κάνει κείμενο. Το κινητό δεν κρατά τον ήχο.</string>
+    <string name="settings_privacy_text">Το κείμενο πηγαίνει σε μια υπηρεσία AI μόνο με προφίλ. Με το «Χωρίς αλλαγές» δεν πηγαίνει πουθενά.</string>
+    <string name="settings_privacy_phone">Το κινητό κρατά, μόνο στη συσκευή, το Ιστορικό (το κείμενο, την εφαρμογή και τους χρόνους κάθε υπαγόρευσης), το Λεξικό και τις ρυθμίσεις. Οι όροι του Λεξικού πηγαίνουν σε κάθε υπαγόρευση στην αναγνώριση ομιλίας.</string>
+    <string name="settings_privacy_never">Σε πεδία κωδικών το Pesto δεν εμφανίζεται. Σε ιδιωτική περιήγηση (incognito) το κείμενο μπαίνει στο πεδίο, αλλά δεν γράφεται στο Ιστορικό.</string>
+    <string name="settings_delete_all">Διαγραφή όλου του Ιστορικού</string>
+    <string name="settings_delete_all_confirm">Διαγραφή όλων των υπαγορεύσεων; Δεν αναιρείται.</string>
+    <string name="settings_about">Σχετικά</string>
+    <string name="settings_version">Έκδοση</string>
+    <string name="settings_build">Build</string>
+
+    <!-- C11: the languages of the speech recognition (Δ14). -->
+    <string name="language_el">Ελληνικά</string>
+    <string name="language_en">Αγγλικά</string>
+    <string name="language_de">Γερμανικά</string>
+    <string name="language_fr">Γαλλικά</string>
+    <string name="language_es">Ισπανικά</string>
+    <string name="language_it">Ιταλικά</string>
+</resources>

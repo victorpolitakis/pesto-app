@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
@@ -95,14 +96,15 @@ private fun HighlightedText(snippet: Snippet, modifier: Modifier = Modifier) {
     )
 }
 
-/** [RelativeDate] with the phone's 12/24 hours and the words of strings.xml. */
+/** [RelativeDate] with the phone's 12/24 hours, its language and the words of strings.xml. */
 @Composable
 fun relativeTime(time: Long): String {
     val context = LocalContext.current
+    val locale = LocalConfiguration.current.locales[0]
     val today = stringResource(R.string.time_today)
     val yesterday = stringResource(R.string.time_yesterday)
-    return remember(time, today, yesterday) {
-        RelativeDate.format(time, System.currentTimeMillis(), ZoneId.systemDefault(), DateFormat.is24HourFormat(context), today, yesterday)
+    return remember(time, today, yesterday, locale) {
+        RelativeDate.format(time, System.currentTimeMillis(), ZoneId.systemDefault(), DateFormat.is24HourFormat(context), today, yesterday, locale)
     }
 }
 
@@ -110,7 +112,8 @@ fun relativeTime(time: Long): String {
 @Composable
 fun exactTime(time: Long): String {
     val context = LocalContext.current
-    return remember(time) { RelativeDate.exact(time, ZoneId.systemDefault(), DateFormat.is24HourFormat(context)) }
+    val locale = LocalConfiguration.current.locales[0]
+    return remember(time, locale) { RelativeDate.exact(time, ZoneId.systemDefault(), DateFormat.is24HourFormat(context), locale) }
 }
 
 private val previewApp = AppDisplay("com.google.android.gm", "Gmail", null)

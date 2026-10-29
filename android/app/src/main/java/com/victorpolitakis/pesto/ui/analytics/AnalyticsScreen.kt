@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -229,6 +230,7 @@ private fun DaysSection(days: List<DayCount>, period: Int, onPeriodChange: (Int)
 @Composable
 private fun DayBars(days: List<DayCount>, showWeekdays: Boolean, modifier: Modifier = Modifier) {
     val most = days.maxOfOrNull { it.words }?.takeIf { it > 0 } ?: 1
+    val locale = LocalConfiguration.current.locales[0]
     Column(modifier.fillMaxWidth().padding(16.dp).testTag("day_bars")) {
         Row(
             Modifier.fillMaxWidth().height(120.dp),
@@ -238,7 +240,7 @@ private fun DayBars(days: List<DayCount>, showWeekdays: Boolean, modifier: Modif
             for (day in days) {
                 val description = stringResource(
                     R.string.cd_day_bar,
-                    RelativeDate.day(day.day),
+                    RelativeDate.day(day.day, locale),
                     pluralStringResource(R.plurals.words, day.words, day.words),
                     pluralStringResource(R.plurals.dictations, day.dictations, day.dictations),
                 )
@@ -262,7 +264,7 @@ private fun DayBars(days: List<DayCount>, showWeekdays: Boolean, modifier: Modif
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (day in days) {
                     Text(
-                        RelativeDate.weekday(day.day),
+                        RelativeDate.weekday(day.day, locale),
                         style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.Center,
                         maxLines = 1,

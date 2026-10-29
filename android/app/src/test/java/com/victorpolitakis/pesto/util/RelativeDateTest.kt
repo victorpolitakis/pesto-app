@@ -7,16 +7,19 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.util.Locale
 
-/** Δ23, on Wednesday 28/10/2026 at 20:00 (UTC unless said otherwise). */
+/** Δ23, on Wednesday 28/10/2026 at 20:00 (UTC unless said otherwise), in Greek; the English ones are at the end. */
 class RelativeDateTest {
     private val now = at(2026, 10, 28, 20, 0)
+    private val el = Locale.forLanguageTag("el")
+    private val en = Locale.forLanguageTag("en")
 
     private fun at(year: Int, month: Int, day: Int, hour: Int, minute: Int) =
         LocalDateTime.of(year, month, day, hour, minute).toInstant(ZoneOffset.UTC).toEpochMilli()
 
     private fun format(time: Long, is24h: Boolean = true, zone: ZoneId = ZoneOffset.UTC) =
-        RelativeDate.format(time, now, zone, is24h, today = "Σήμερα", yesterday = "Χθες")
+        RelativeDate.format(time, now, zone, is24h, today = "Σήμερα", yesterday = "Χθες", locale = el)
 
     @Test
     fun `today and yesterday`() {
@@ -27,7 +30,7 @@ class RelativeDateTest {
     @Test
     fun `yesterday is the calendar day, not 24 hours`() {
         val justAfterMidnight = at(2026, 10, 28, 0, 1)
-        assertEquals("Χθες, 23:59", RelativeDate.format(at(2026, 10, 27, 23, 59), justAfterMidnight, ZoneOffset.UTC, true, "Σήμερα", "Χθες"))
+        assertEquals("Χθες, 23:59", RelativeDate.format(at(2026, 10, 27, 23, 59), justAfterMidnight, ZoneOffset.UTC, true, "Σήμερα", "Χθες", el))
     }
 
     @Test
@@ -56,13 +59,49 @@ class RelativeDateTest {
 
     @Test
     fun `the days of the bars of Analytics`() {
-        assertEquals("Τρίτη 27 Οκτ", RelativeDate.day(LocalDate.of(2026, 10, 27)))
-        assertEquals("Τρί", RelativeDate.weekday(LocalDate.of(2026, 10, 27)))
-        assertEquals("Κυρ", RelativeDate.weekday(LocalDate.of(2026, 10, 25)))
+        assertEquals("Τρίτη 27 Οκτ", RelativeDate.day(LocalDate.of(2026, 10, 27), el))
+        assertEquals("Τρί", RelativeDate.weekday(LocalDate.of(2026, 10, 27), el))
+        assertEquals("Κυρ", RelativeDate.weekday(LocalDate.of(2026, 10, 25), el))
     }
 
     @Test
     fun `the exact time of the detail`() {
-        assertEquals("28 Οκτ 2026, 18:26:03", RelativeDate.exact(at(2026, 10, 28, 18, 26) + 3_000, ZoneOffset.UTC, true))
+        assertEquals("28 Οκτ 2026, 18:26:03", RelativeDate.exact(at(2026, 10, 28, 18, 26) + 3_000, ZoneOffset.UTC, true, el))
+    }
+
+    private fun formatEn(time: Long, is24h: Boolean = true) =
+        RelativeDate.format(time, now, ZoneOffset.UTC, is24h, today = "Today", yesterday = "Yesterday", locale = en)
+
+    @Test
+    fun `in English - today and yesterday`() {
+        assertEquals("Today, 18:26", formatEn(at(2026, 10, 28, 18, 26)))
+        assertEquals("Yesterday, 18:26", formatEn(at(2026, 10, 27, 18, 26)))
+    }
+
+    @Test
+    fun `in English - the day of the week for the last 7 days`() {
+        assertEquals("Monday, 09:05", formatEn(at(2026, 10, 26, 9, 5)))
+        assertEquals("Thursday, 18:26", formatEn(at(2026, 10, 22, 18, 26)))
+    }
+
+    @Test
+    fun `in English - older, the date, with the year when it is another one`() {
+        assertEquals("21 Oct, 18:26", formatEn(at(2026, 10, 21, 18, 26)))
+        assertEquals("12 Oct 2025, 18:26", formatEn(at(2025, 10, 12, 18, 26)))
+    }
+
+    @Test
+    fun `in English - 12 hours with AM and PM`() {
+        assertEquals("Yesterday, 6:26 PM", formatEn(at(2026, 10, 27, 18, 26), is24h = false))
+        assertEquals("Today, 9:05 AM", formatEn(at(2026, 10, 28, 9, 5), is24h = false))
+    }
+
+    @Test
+    fun `in English - the days of the bars of Analytics and the exact time`() {
+        assertEquals("Tuesday 27 Oct", RelativeDate.day(LocalDate.of(2026, 10, 27), en))
+        assertEquals("Tue", RelativeDate.weekday(LocalDate.of(2026, 10, 27), en))
+        assertEquals("Sun", RelativeDate.weekday(LocalDate.of(2026, 10, 25), en))
+        assertEquals("28 Oct 2026, 18:26:03", RelativeDate.exact(at(2026, 10, 28, 18, 26) + 3_000, ZoneOffset.UTC, true, en))
+        assertEquals("28 Oct 2026, 6:26:03 PM", RelativeDate.exact(at(2026, 10, 28, 18, 26) + 3_000, ZoneOffset.UTC, false, en))
     }
 }
