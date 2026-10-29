@@ -5,4 +5,6 @@
     <color name="pesto_on_primary">#FFFFFFFF</color>
     <color name="pesto_panel">#FFF4F6F1</color>
     <color name="pesto_on_panel">#FF1B1F1A</color>
+    <!-- Behind the leaf of the launcher icon: the light green of the artwork. -->
+    <color name="ic_launcher_background">#FF8FC574</color>
 </resources>
