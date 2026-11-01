@@ -29,6 +29,9 @@ text = message["message"]["content"][0]["text"]
 if mode == "argv":
     text = json.dumps({"args": args, "env": sorted(os.environ), "cwd": os.getcwd()})
 model = "claude-sonnet-5-5" if mode == "wrong" else "claude-haiku-5-5"
+structured = (
+    {"reply": text, "args": args} if mode == "json" else {"text": text}
+)
 
 print(json.dumps({"type": "system", "subtype": "init", "model": model}))
 print(
@@ -37,7 +40,7 @@ print(
             "type": "result",
             "subtype": "success",
             "is_error": False,
-            "structured_output": {"text": text},
+            "structured_output": structured,
             "modelUsage": {model: {}},
             "usage": {"input_tokens": 1},
         }

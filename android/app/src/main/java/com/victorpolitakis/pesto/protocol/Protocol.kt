@@ -95,6 +95,160 @@ data class PairResponse(val token: String) {
     override fun toString() = "PairResponse(token=…)"
 }
 
+// --- POST /v1/assistant (X3) ---
+
+@Serializable
+enum class AssistantDestination {
+    HOME,
+    PROFILES,
+    DICTIONARY,
+    HISTORY,
+    SEARCH,
+    ANALYTICS,
+    APPS,
+    SETTINGS,
+    SETTINGS_LANGUAGES,
+    SETTINGS_PROFILE,
+    SETTINGS_OFFLINE,
+    SETTINGS_PERMISSIONS,
+    SETTINGS_OVERLAY,
+    SETTINGS_XIAOMI,
+    SETTINGS_BACKEND,
+    SETTINGS_PRIVACY,
+    SETTINGS_ABOUT,
+    PROFILE_DETAIL,
+}
+
+@Serializable
+enum class AssistantToolName {
+    @SerialName("get_stats") GET_STATS,
+    @SerialName("search_history") SEARCH_HISTORY,
+    @SerialName("recent_history") RECENT_HISTORY,
+    @SerialName("get_dictionary") GET_DICTIONARY,
+    @SerialName("get_profiles") GET_PROFILES,
+}
+
+@Serializable
+data class NavigationTarget(
+    val destination: AssistantDestination,
+    @SerialName("profile_id") val profileId: String? = null,
+)
+
+@Serializable
+data class ToolCall(
+    val tool: AssistantToolName,
+    val query: String? = null,
+    val limit: Int? = null,
+)
+
+@Serializable
+data class AssistantTurn(
+    val role: String,
+    val text: String,
+)
+
+@Serializable
+data class DaySummary(
+    val date: String,
+    val dictations: Int,
+    val words: Int,
+)
+
+@Serializable
+data class AppCountSummary(
+    val app: String,
+    val dictations: Int,
+)
+
+@Serializable
+data class StatsSummary(
+    val dictations: Int = 0,
+    @SerialName("dictations_today") val dictationsToday: Int = 0,
+    val words: Int = 0,
+    @SerialName("words_today") val wordsToday: Int = 0,
+    @SerialName("words_this_week") val wordsThisWeek: Int = 0,
+    @SerialName("speech_minutes") val speechMinutes: Double = 0.0,
+    @SerialName("minutes_saved") val minutesSaved: Double = 0.0,
+    val wpm: Double? = null,
+    val days: List<DaySummary> = emptyList(),
+    @SerialName("top_apps") val topApps: List<AppCountSummary> = emptyList(),
+    @SerialName("by_profile") val byProfile: Map<String, Int> = emptyMap(),
+)
+
+@Serializable
+data class HistoryEntrySummary(
+    @SerialName("created_at") val createdAt: String,
+    val app: String,
+    val profile: String,
+    val words: Int = 0,
+    val text: String,
+)
+
+@Serializable
+data class DictionarySummary(
+    val total: Int = 0,
+    @SerialName("remaining_chars") val remainingChars: Int = 0,
+    val terms: List<String> = emptyList(),
+)
+
+@Serializable
+data class ProfilesSummary(
+    val available: List<String> = emptyList(),
+    @SerialName("default_profile") val defaultProfile: String,
+    @SerialName("app_profiles") val appProfiles: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class ToolResults(
+    val stats: StatsSummary? = null,
+    @SerialName("history_matches") val historyMatches: List<HistoryEntrySummary>? = null,
+    @SerialName("recent_history") val recentHistory: List<HistoryEntrySummary>? = null,
+    val dictionary: DictionarySummary? = null,
+    val profiles: ProfilesSummary? = null,
+)
+
+@Serializable
+sealed interface AssistantRequest
+
+@Serializable
+@SerialName("plan")
+data class AssistantPlanRequest(
+    val locale: String = "el",
+    val query: String,
+    val context: List<AssistantTurn> = emptyList(),
+) : AssistantRequest
+
+@Serializable
+@SerialName("answer")
+data class AssistantAnswerRequest(
+    val locale: String = "el",
+    val query: String,
+    @SerialName("tool_results") val toolResults: ToolResults,
+) : AssistantRequest
+
+@Serializable
+sealed interface AssistantResponse
+
+@Serializable
+@SerialName("reply")
+data class AssistantReply(
+    val reply: String,
+    val navigate: NavigationTarget? = null,
+    @SerialName("fallback_reason") val fallbackReason: String? = null,
+) : AssistantResponse
+
+@Serializable
+@SerialName("tool_calls")
+data class AssistantToolCalls(
+    val tools: List<ToolCall>,
+) : AssistantResponse
+
+fun encodeAssistant(request: AssistantRequest): String =
+    protocolJson.encodeToString(AssistantRequest.serializer(), request)
+
+fun decodeAssistant(text: String): AssistantResponse =
+    protocolJson.decodeFromString(AssistantResponse.serializer(), text)
+
 fun encode(message: ClientMessage): String = protocolJson.encodeToString(ClientMessage.serializer(), message)
 
 fun decode(text: String): ServerMessage = protocolJson.decodeFromString(ServerMessage.serializer(), text)

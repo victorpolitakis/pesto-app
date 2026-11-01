@@ -13,10 +13,25 @@ import javax.xml.parsers.DocumentBuilderFactory
  * MissingTranslation says the same, later). Read from the source tree, from the module folder.
  */
 class StringResourcesTest {
-    private val english = read("src/main/res/values/strings.xml")
-    private val greek = read("src/main/res/values-el/strings.xml")
+    private val english = readDir("src/main/res/values")
+    private val greek = readDir("src/main/res/values-el")
 
-    /** name → text (or the quantities and texts of a plurals), in order of the file. */
+    /** name → text (or the quantities and texts of a plurals), across all strings*.xml in [dir]. */
+    private fun readDir(dir: String): Map<String, String> {
+        val files = File(dir)
+            .listFiles { f -> f.isFile && f.name.startsWith("strings") && f.name.endsWith(".xml") }
+            ?.sortedBy { it.name }
+            .orEmpty()
+        assertTrue("$dir: no strings*.xml found", files.isNotEmpty())
+        val out = linkedMapOf<String, String>()
+        for (file in files) {
+            for ((name, text) in read(file.path)) {
+                assertTrue("${file.path}: duplicate name $name", out.put(name, text) == null)
+            }
+        }
+        return out
+    }
+
     private fun read(path: String): Map<String, String> {
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(File(path))
         val out = linkedMapOf<String, String>()

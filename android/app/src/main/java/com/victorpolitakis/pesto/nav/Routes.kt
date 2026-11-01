@@ -28,6 +28,8 @@ object Routes {
 
     @Serializable data object Apps
 
+    @Serializable data object Assistant
+
     @Serializable data class ProfileDetail(val id: String)
 
     @Serializable data class HistoryDetail(val id: Long)

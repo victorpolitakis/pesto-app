@@ -57,6 +57,7 @@ class HomeScreenTest {
                     onOpenLanguages = { opened += "languages" },
                     onOpenHistory = { opened += "history" },
                     onOpenDictation = { opened += "dictation $it" },
+                    onOpenAssistant = { opened += "assistant" },
                 )
             }
         }
@@ -109,7 +110,6 @@ class HomeScreenTest {
     @Test
     fun `the buttons without logic yet do nothing, and do not crash`() {
         show()
-        rule.onNodeWithTag("home_chatbot").performClick()
         rule.onNodeWithTag("home_add_styles").performScrollTo().performClick()
         rule.onNodeWithTag("home_edit").performClick()
         rule.onNodeWithTag("home_more").performClick()
@@ -124,11 +124,12 @@ class HomeScreenTest {
         rule.onNodeWithTag("home_avatar").performClick()
         rule.onNodeWithTag("home_search").performClick()
         rule.onNodeWithTag("home_analytics").performClick()
+        rule.onNodeWithTag("home_chatbot").performClick()
         rule.onNodeWithTag("home_apps").performScrollTo().performClick()
         rule.onNodeWithTag("home_languages").performScrollTo().performClick()
         rule.onNodeWithTag("home_all").performScrollTo().performClick()
         rule.onNodeWithTag("dictation_5").performScrollTo().performClick()
-        assertEquals(listOf("settings", "search", "analytics", "apps", "languages", "history", "dictation 5"), opened)
+        assertEquals(listOf("settings", "search", "analytics", "assistant", "apps", "languages", "history", "dictation 5"), opened)
     }
 
     @Test

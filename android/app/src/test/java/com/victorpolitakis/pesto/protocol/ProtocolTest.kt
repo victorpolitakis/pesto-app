@@ -61,4 +61,47 @@ class ProtocolTest {
         assertEquals(Stats(5.7, 17, 152, 1496, 1648), final.stats)
         assertEquals(Error("unknown_profile", "no profile named 'x'", false), decode(example("error").toString()))
     }
+
+    @Test
+    fun `assistant requests and responses match the docs examples`() {
+        val plan = AssistantPlanRequest(
+            locale = "el",
+            query = "Πόσα λεπτά έχω γλιτώσει;",
+            context = listOf(AssistantTurn("user", "Γεια!")),
+        )
+        assertEquals(example("plan"), json(encodeAssistant(plan)))
+
+        val answer = AssistantAnswerRequest(
+            locale = "el",
+            query = "Πόσα λεπτά έχω γλιτώσει;",
+            toolResults = ToolResults(
+                stats = StatsSummary(
+                    dictations = 12,
+                    dictationsToday = 2,
+                    words = 900,
+                    wordsToday = 80,
+                    wordsThisWeek = 400,
+                    speechMinutes = 6.0,
+                    minutesSaved = 16.5,
+                    wpm = 150.0,
+                    days = listOf(DaySummary("2026-11-01", 2, 80)),
+                    topApps = listOf(AppCountSummary("WhatsApp", 7)),
+                    byProfile = mapOf("mail" to 12),
+                ),
+            ),
+        )
+        assertEquals(example("answer"), json(encodeAssistant(answer)))
+
+        assertEquals(
+            AssistantToolCalls(listOf(ToolCall(AssistantToolName.GET_STATS))),
+            decodeAssistant(example("tool_calls").toString()),
+        )
+        assertEquals(
+            AssistantReply(
+                reply = "Έχεις εξοικονομήσει 16,5 λεπτά σε 12 υπαγορεύσεις.",
+                navigate = NavigationTarget(AssistantDestination.ANALYTICS),
+            ),
+            decodeAssistant(example("reply").toString()),
+        )
+    }
 }

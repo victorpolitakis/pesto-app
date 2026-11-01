@@ -27,6 +27,7 @@ object AppIcons {
     @DrawableRes val Search = R.drawable.ic_search
     @DrawableRes val Analytics = R.drawable.ic_analytics
     @DrawableRes val Chatbot = R.drawable.ic_chat
+    @DrawableRes val Send = R.drawable.ic_send
 
     // The four buttons of Home.
     @DrawableRes val AddStyle = R.drawable.ic_add

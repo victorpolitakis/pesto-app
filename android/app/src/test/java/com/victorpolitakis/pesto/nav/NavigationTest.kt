@@ -67,6 +67,7 @@ class NavigationTest {
         composable<Routes.Search> { Placeholder("route_search") }
         composable<Routes.Analytics> { Placeholder("route_analytics") }
         composable<Routes.Apps> { Placeholder("route_apps") }
+        composable<Routes.Assistant> { Placeholder("route_assistant") }
         composable<Routes.ProfileDetail> { Placeholder("route_profile_detail") }
         composable<Routes.HistoryDetail> {
             // As the real screen: it closes, and the snackbar of the app offers the undo.
@@ -156,5 +157,19 @@ class NavigationTest {
             assertTrue(nav.currentDestination!!.hasRoute<Routes.Settings>())
             assertEquals("BACKEND", nav.currentBackStackEntry!!.toRoute<Routes.Settings>().section)
         }
+    }
+
+    @Test
+    fun `Assistant opens without the bottom bar, and navigateFromAssistant routes cleanly`() {
+        show()
+        rule.runOnUiThread { nav.navigate(Routes.Assistant) }
+        rule.onNodeWithTag("route_assistant").assertIsDisplayed()
+        rule.onNodeWithTag("bottom_bar").assertDoesNotExist()
+
+        rule.runOnUiThread {
+            nav.navigateFromAssistant(com.victorpolitakis.pesto.protocol.NavigationTarget(com.victorpolitakis.pesto.protocol.AssistantDestination.DICTIONARY))
+        }
+        rule.onNodeWithTag("route_dictionary").assertIsDisplayed()
+        rule.onNodeWithTag("bottom_bar").assertIsDisplayed()
     }
 }

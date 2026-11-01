@@ -79,6 +79,7 @@ fun HomeRoute(
     onOpenSettings: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenAnalytics: () -> Unit,
+    onOpenAssistant: () -> Unit,
     onOpenApps: () -> Unit,
     onOpenLanguages: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -96,6 +97,7 @@ fun HomeRoute(
         onOpenLanguages = onOpenLanguages,
         onOpenHistory = onOpenHistory,
         onOpenDictation = onOpenDictation,
+        onOpenAssistant = onOpenAssistant,
         modifier = modifier,
     )
 }
@@ -118,6 +120,7 @@ fun HomeScreen(
     onOpenHistory: () -> Unit,
     onOpenDictation: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenAssistant: () -> Unit = {},
 ) {
     val pager = rememberPagerState { HomePage.entries.size }
     Column(
@@ -127,7 +130,7 @@ fun HomeScreen(
             .testTag("screen_home"),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        TopRow(onOpenSettings, onOpenSearch, onOpenAnalytics)
+        TopRow(onOpenSettings, onOpenSearch, onOpenAnalytics, onOpenAssistant)
         HorizontalPager(pager, Modifier.fillMaxWidth().testTag("home_pager")) { page ->
             StatPage(HomePage.entries[page], state.totals)
         }
@@ -140,7 +143,13 @@ fun HomeScreen(
 
 /** Avatar → Settings, the search bar → Search, and two circles of the same size: Analytics and the chatbot. */
 @Composable
-private fun TopRow(onOpenSettings: () -> Unit, onOpenSearch: () -> Unit, onOpenAnalytics: () -> Unit, modifier: Modifier = Modifier) {
+private fun TopRow(
+    onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenAnalytics: () -> Unit,
+    onOpenAssistant: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("home_top"),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -170,8 +179,7 @@ private fun TopRow(onOpenSettings: () -> Unit, onOpenSearch: () -> Unit, onOpenA
         FilledTonalIconButton(onClick = onOpenAnalytics, modifier = Modifier.testTag("home_analytics")) {
             Icon(painterResource(AppIcons.Analytics), contentDescription = stringResource(R.string.title_analytics))
         }
-        // TODO(X3): the assistant opens here. No action until then.
-        FilledTonalIconButton(onClick = {}, modifier = Modifier.testTag("home_chatbot")) {
+        FilledTonalIconButton(onClick = onOpenAssistant, modifier = Modifier.testTag("home_chatbot")) {
             Icon(painterResource(AppIcons.Chatbot), contentDescription = stringResource(R.string.cd_chatbot))
         }
     }

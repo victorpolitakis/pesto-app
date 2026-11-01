@@ -166,3 +166,39 @@ Content-Type: application/json
 - Κενό πριν το κείμενο και κεφαλαίο στην αρχή πρότασης (C5): ο backend στέλνει το κείμενο όπως το έγραψε το Soniox ή το Haiku.
 - Πεδίο κωδικού: το κουμπί δεν εμφανίζεται (C7). Ο backend δεν βλέπει ποτέ τέτοια υπαγόρευση.
 - Incognito: τίποτα στο History (C7). Ο backend κρατά μόνο αριθμούς (`backend/logs/metrics.jsonl`), ποτέ κείμενο.
+
+## Βοηθός (X3): `POST /v1/assistant`
+
+Stateless κλήση HTTP με το ίδιο `Authorization: Bearer <token της συσκευής>` (χωρίς έγκυρο token → `403 {"detail": "unauthorized"}`, άγνωστο ή μη έγκυρο πεδίο → `422`). Ο backend δεν αποθηκεύει ποτέ ερωτήματα ή αποτελέσματα εργαλείων.
+
+Η ροή χωρίζεται σε δύο απομονωμένα βήματα (CaMeL / Dual-LLM):
+
+1. **Βήμα `plan` (χωρίς δεδομένα History/Dictionary):** αποφασίζει είτε άμεση απάντηση (`reply` + προαιρετικό `navigate` enum), είτε ως 3 read-only τοπικά εργαλεία (`tool_calls`: `get_stats`, `search_history`, `recent_history`, `get_dictionary`, `get_profiles`).
+2. **Βήμα `answer` (μόνο όταν ζητήθηκαν `tool_calls`):** διαβάζει τα τοπικά `tool_results` (με XML tags και spotlighting) και επιστρέφει **μόνο** `reply`, χωρίς εργαλεία και χωρίς `navigate`.
+
+### Παραδείγματα `POST /v1/assistant`
+
+```json
+{"type": "plan",
+ "locale": "el",
+ "query": "Πόσα λεπτά έχω γλιτώσει;",
+ "context": [{"role": "user", "text": "Γεια!"}]}
+```
+
+```json
+{"type": "tool_calls",
+ "tools": [{"tool": "get_stats"}]}
+```
+
+```json
+{"type": "answer",
+ "locale": "el",
+ "query": "Πόσα λεπτά έχω γλιτώσει;",
+ "tool_results": {"stats": {"dictations": 12, "dictations_today": 2, "words": 900, "words_today": 80, "words_this_week": 400, "speech_minutes": 6.0, "minutes_saved": 16.5, "wpm": 150.0, "days": [{"date": "2026-11-01", "dictations": 2, "words": 80}], "top_apps": [{"app": "WhatsApp", "dictations": 7}], "by_profile": {"mail": 12}}}}
+```
+
+```json
+{"type": "reply",
+ "reply": "Έχεις εξοικονομήσει 16,5 λεπτά σε 12 υπαγορεύσεις.",
+ "navigate": {"destination": "ANALYTICS"}}
+```

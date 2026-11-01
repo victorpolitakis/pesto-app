@@ -52,9 +52,26 @@ class LlmResult:
     usage: dict = field(default_factory=dict)
 
 
+@dataclass
+class LlmJsonResult:
+    data: dict
+    model: str
+    latency_ms: int
+    usage: dict = field(default_factory=dict)
+
+
 class LlmProvider(Protocol):
     async def warm(self, profile: Profile) -> None: ...
     async def rewrite(self, profile: Profile, prompt: str) -> LlmResult: ...
+    async def complete_json(
+        self,
+        system_prompt: str,
+        schema: dict,
+        prompt: str,
+        *,
+        effort: str | None = None,
+        timeout_s: float | None = None,
+    ) -> LlmJsonResult: ...
     async def aclose(self) -> None: ...
 
 
@@ -70,7 +87,7 @@ def user_message(prompt: str) -> bytes:
     return (json.dumps(message, ensure_ascii=False) + "\n").encode()
 
 
-def parse_result(event: dict, model: str) -> tuple[str, dict]:
+def parse_json_result(event: dict, model: str) -> tuple[dict, dict]:
     if event.get("subtype") != "success" or event.get("is_error"):
         raise LlmError("failed", str(event.get("subtype")))
     models = set((event.get("modelUsage") or {}).keys())
@@ -82,10 +99,17 @@ def parse_result(event: dict, model: str) -> tuple[str, dict]:
             output = json.loads(event.get("result") or "")
         except json.JSONDecodeError as e:
             raise LlmError("bad_output", "no structured output") from e
-    text = output.get("text") if isinstance(output, dict) else None
+    if not isinstance(output, dict):
+        raise LlmError("bad_output", "structured output is not an object")
+    return output, event.get("usage") or {}
+
+
+def parse_result(event: dict, model: str) -> tuple[str, dict]:
+    output, usage = parse_json_result(event, model)
+    text = output.get("text")
     if not isinstance(text, str):
         raise LlmError("bad_output", "no text field")
-    return text, event.get("usage") or {}
+    return text, usage
 
 
 class WarmProcess:
@@ -99,17 +123,36 @@ class WarmProcess:
 
     @classmethod
     async def start(cls, cmd: list[str], profile: Profile, model: str, effort: str):
+        return await cls.start_custom(
+            cmd,
+            profile.id,
+            profile.prompt,
+            OUTPUT_SCHEMA,
+            model,
+            profile.effort or effort,
+        )
+
+    @classmethod
+    async def start_custom(
+        cls,
+        cmd: list[str],
+        profile_id: str,
+        system_prompt: str,
+        schema: dict,
+        model: str,
+        effort: str,
+    ):
         cwd = tempfile.mkdtemp(prefix="pesto-llm-")
         args = [
             *cmd,
             "-p",
             "--model", model,
-            "--effort", profile.effort or effort,
+            "--effort", effort,
             "--input-format", "stream-json",
             "--output-format", "stream-json",
             "--verbose",
-            "--system-prompt", profile.prompt,
-            "--json-schema", json.dumps(OUTPUT_SCHEMA),
+            "--system-prompt", system_prompt,
+            "--json-schema", json.dumps(schema),
             "--tools", "",
             "--setting-sources", "project",
             "--disable-slash-commands",
@@ -132,13 +175,13 @@ class WarmProcess:
         except OSError as e:
             shutil.rmtree(cwd, ignore_errors=True)
             raise LlmError("failed", str(e)) from e
-        return cls(profile.id, proc, cwd)
+        return cls(profile_id, proc, cwd)
 
     @property
     def alive(self) -> bool:
         return self._proc.returncode is None
 
-    async def run(self, prompt: str, model: str) -> tuple[str, dict]:
+    async def run_json(self, prompt: str, model: str) -> tuple[dict, dict]:
         assert self._proc.stdin and self._proc.stdout
         try:
             self._proc.stdin.write(user_message(prompt))
@@ -152,8 +195,15 @@ class WarmProcess:
             except json.JSONDecodeError:
                 continue
             if event.get("type") == "result":
-                return parse_result(event, model)
+                return parse_json_result(event, model)
         raise LlmError("failed", "claude exited without a result")
+
+    async def run(self, prompt: str, model: str) -> tuple[str, dict]:
+        output, usage = await self.run_json(prompt, model)
+        text = output.get("text")
+        if not isinstance(text, str):
+            raise LlmError("bad_output", "no text field")
+        return text, usage
 
     async def close(self) -> None:
         if self.alive:
@@ -221,6 +271,37 @@ class ClaudeCodeCli:
         latency_ms = int((time.perf_counter() - started) * 1000)
         return LlmResult(
             text=text, model=self._model, latency_ms=latency_ms, usage=usage
+        )
+
+    async def complete_json(
+        self,
+        system_prompt: str,
+        schema: dict,
+        prompt: str,
+        *,
+        effort: str | None = None,
+        timeout_s: float | None = None,
+    ) -> LlmJsonResult:
+        """One-off structured call (e.g. X3 Assistant), leaving `_spare` untouched."""
+        started = time.perf_counter()
+        proc = await WarmProcess.start_custom(
+            self._cmd,
+            "_json",
+            system_prompt,
+            schema,
+            self._model,
+            effort or self._effort,
+        )
+        try:
+            async with asyncio.timeout(timeout_s or self._timeout_s):
+                data, usage = await proc.run_json(prompt, self._model)
+        except TimeoutError as e:
+            raise LlmError("timeout") from e
+        finally:
+            await proc.close()
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        return LlmJsonResult(
+            data=data, model=self._model, latency_ms=latency_ms, usage=usage
         )
 
     async def aclose(self) -> None:

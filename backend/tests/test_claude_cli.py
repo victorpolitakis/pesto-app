@@ -171,3 +171,28 @@ def test_profile_effort_overrides_default(profiles):
 
     args = json.loads(asyncio.run(scenario()).text)["args"]
     assert args[args.index("--effort") + 1] == "low"
+
+
+def test_complete_json_keeps_spare_untouched(profiles):
+    schema = {"type": "object", "properties": {"reply": {"type": "string"}}}
+
+    async def scenario():
+        llm = cli("json")
+        try:
+            await llm.warm(profiles["mail"])
+            spare = llm._spare
+            result = await llm.complete_json(
+                "sys-assistant", schema, "hello", effort="low", timeout_s=5.0
+            )
+            assert llm._spare is spare and spare.alive
+            return result
+        finally:
+            await llm.aclose()
+
+    result = asyncio.run(scenario())
+    assert result.data["reply"] == "hello"
+    args = result.data["args"]
+    assert args[args.index("--system-prompt") + 1] == "sys-assistant"
+    assert json.loads(args[args.index("--json-schema") + 1]) == schema
+    assert args[args.index("--effort") + 1] == "low"
+    assert args[args.index("--tools") + 1] == ""

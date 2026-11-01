@@ -3,7 +3,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from pesto_server.llm.claude_cli import LlmError, LlmResult
+from pesto_server.llm.claude_cli import LlmError, LlmJsonResult, LlmResult
 from pesto_server.llm.profiles import Profile
 from pesto_server.stt import SttConfig, SttError, SttUpdate
 
@@ -80,12 +80,20 @@ class FakeSttFactory:
 class FakeLlm:
     """Returns `text` (or the result of `reply(prompt)`), or raises `error`."""
 
-    def __init__(self, text: str = "", reply=None, error: str | None = None):
+    def __init__(
+        self,
+        text: str = "",
+        reply=None,
+        json_reply=None,
+        error: str | None = None,
+    ):
         self.text = text
         self.reply = reply
+        self.json_reply = json_reply
         self.error = error
         self.warmed: list[str] = []
         self.prompts: list[str] = []
+        self.json_calls: list[dict] = []
         self.closed = False
 
     async def warm(self, profile: Profile) -> None:
@@ -97,6 +105,33 @@ class FakeLlm:
             raise LlmError(self.error)
         text = self.reply(prompt) if self.reply else self.text
         return LlmResult(text=text, model="claude-haiku-5-5", latency_ms=1)
+
+    async def complete_json(
+        self,
+        system_prompt: str,
+        schema: dict,
+        prompt: str,
+        *,
+        effort: str | None = None,
+        timeout_s: float | None = None,
+    ) -> LlmJsonResult:
+        self.json_calls.append(
+            {
+                "system_prompt": system_prompt,
+                "schema": schema,
+                "prompt": prompt,
+                "effort": effort,
+                "timeout_s": timeout_s,
+            }
+        )
+        if self.error:
+            raise LlmError(self.error)
+        data = (
+            self.json_reply(system_prompt, schema, prompt)
+            if self.json_reply
+            else {"reply": self.text}
+        )
+        return LlmJsonResult(data=data, model="claude-haiku-5-5", latency_ms=1)
 
     async def aclose(self) -> None:
         self.closed = True

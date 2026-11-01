@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="en">
+    <!-- X3: Assistant (chatbot). Separate file to avoid merge conflicts on strings.xml. TODO(phase 6): texts with the design. -->
+    <string name="cd_send">Send</string>
+    <string name="assistant_hint">Ask about your dictations or Pesto…</string>
+    <string name="assistant_intro">Ask about your stats, search your dictations, or jump to any screen.</string>
+    <string name="assistant_suggestion_stats">How many minutes have I saved?</string>
+    <string name="assistant_suggestion_recent">What did I dictate recently?</string>
+    <string name="assistant_suggestion_offline">How does offline dictation work?</string>
+    <string name="assistant_thinking">Thinking…</string>
+    <string name="assistant_open_destination">Open: %1$s</string>
+    <string name="assistant_error_network">Could not reach the backend. Try again.</string>
+    <string name="assistant_unpaired">Pair this phone with the backend first to use the Assistant.</string>
+    <string name="assistant_pair_open">Open backend settings</string>
+</resources>

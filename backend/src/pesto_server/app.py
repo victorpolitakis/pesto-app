@@ -1,19 +1,29 @@
-"""FastAPI app: GET /health, POST /v1/pair and the dictation WebSocket /v1/dictate."""
+"""FastAPI app: GET /health, POST /v1/pair, POST /v1/assistant and /v1/dictate."""
 
 import asyncio
 import contextlib
 import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
+from starlette.requests import HTTPConnection
 
+from .assistant import AssistantService
 from .config import Settings
 from .devices import DeviceRegistry
 from .llm.claude_cli import ClaudeCodeCli, LlmProvider
 from .llm.profiles import load_profiles
 from .pipeline import TextPipeline
-from .protocol import Error, PairRequest, PairResponse, Start, client_message
+from .protocol import (
+    AssistantRequest,
+    AssistantResponse,
+    Error,
+    PairRequest,
+    PairResponse,
+    Start,
+    client_message,
+)
 from .session import DictationSession, InboxItem, SessionLimits
 from .stt import SonioxClient, SttConfig, SttFactory
 
@@ -40,10 +50,10 @@ def default_provider(settings: Settings) -> LlmProvider:
     )
 
 
-def token_ok(websocket: WebSocket, app_token: str, devices: DeviceRegistry) -> bool:
+def token_ok(conn: HTTPConnection, app_token: str, devices: DeviceRegistry) -> bool:
     """The token of a paired device (Δ24), or PESTO_APP_TOKEN for the Mac's tools."""
-    header = websocket.headers.get("authorization", "")
-    given = header.removeprefix("Bearer ").strip() or websocket.query_params.get(
+    header = conn.headers.get("authorization", "")
+    given = header.removeprefix("Bearer ").strip() or conn.query_params.get(
         "token", ""
     )
     if not given:
@@ -67,6 +77,7 @@ def create_app(
     limits = limits or SessionLimits.from_settings(settings)
     devices = devices or DeviceRegistry(settings.devices_path)
     pipeline = TextPipeline(load_profiles(settings.profiles_dir), provider)
+    assistant = AssistantService(provider)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -82,6 +93,7 @@ def create_app(
         openapi_url=None,
     )
     app.state.pipeline = pipeline
+    app.state.assistant = assistant
 
     @app.get("/health")
     async def health() -> dict:
@@ -96,6 +108,14 @@ def create_app(
         if token is None:
             raise HTTPException(status_code=403, detail="wrong code")
         return PairResponse(token=token)
+
+    @app.post("/v1/assistant")
+    async def assistant_turn(
+        request: AssistantRequest, http_request: Request
+    ) -> AssistantResponse:
+        if not token_ok(http_request, settings.pesto_app_token, devices):
+            raise HTTPException(status_code=403, detail="unauthorized")
+        return await assistant.handle(request)
 
     # TODO(X13): POST /v1/rewrite for a playground on the phone: one profile at a
     # time, the same TextPipeline, no metrics and no History.

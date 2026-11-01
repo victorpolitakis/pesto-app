@@ -33,9 +33,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.victorpolitakis.pesto.R
 import com.victorpolitakis.pesto.permissions.Requirement
+import com.victorpolitakis.pesto.protocol.AssistantDestination
+import com.victorpolitakis.pesto.protocol.NavigationTarget
 import com.victorpolitakis.pesto.ui.AppIcons
 import com.victorpolitakis.pesto.ui.analytics.AnalyticsRoute
 import com.victorpolitakis.pesto.ui.apps.AppsRoute
+import com.victorpolitakis.pesto.ui.assistant.AssistantRoute
 import com.victorpolitakis.pesto.ui.dictionary.DictionaryRoute
 import com.victorpolitakis.pesto.ui.history.HistoryDetailRoute
 import com.victorpolitakis.pesto.ui.history.HistoryRoute
@@ -118,10 +121,19 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
             onOpenSettings = { nav.navigate(Routes.Settings()) },
             onOpenSearch = { nav.navigate(Routes.Search) },
             onOpenAnalytics = { nav.navigate(Routes.Analytics) },
+            onOpenAssistant = { nav.navigate(Routes.Assistant) },
             onOpenApps = { nav.navigate(Routes.Apps) },
             onOpenLanguages = { nav.navigate(Routes.Settings(SettingsSection.LANGUAGES.name)) },
             onOpenHistory = { nav.openTab(Tab.HISTORY) },
             onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) },
+        )
+    }
+    composable<Routes.Assistant> {
+        AssistantRoute(
+            onBack = { nav.popBackStack() },
+            onNavigate = { target -> nav.navigateFromAssistant(target) },
+            onOpenDictation = { id -> nav.navigate(Routes.HistoryDetail(id)) },
+            onOpenPairing = { nav.navigate(Routes.Settings(SettingsSection.BACKEND.name)) },
         )
     }
     composable<Routes.Profiles> { ProfilesRoute(onOpenProfile = { id -> nav.navigate(Routes.ProfileDetail(id)) }) }
@@ -150,6 +162,30 @@ fun NavHostController.openTab(tab: Tab) = navigate(tab.route) {
     popUpTo(graph.findStartDestination().id) { saveState = true }
     launchSingleTop = true
     restoreState = true
+}
+
+/** Opens a validated [NavigationTarget] enum from the Assistant. */
+fun NavHostController.navigateFromAssistant(target: NavigationTarget) {
+    when (target.destination) {
+        AssistantDestination.HOME -> openTab(Tab.HOME)
+        AssistantDestination.PROFILES -> openTab(Tab.PROFILES)
+        AssistantDestination.DICTIONARY -> openTab(Tab.DICTIONARY)
+        AssistantDestination.HISTORY -> openTab(Tab.HISTORY)
+        AssistantDestination.SEARCH -> navigate(Routes.Search)
+        AssistantDestination.ANALYTICS -> navigate(Routes.Analytics)
+        AssistantDestination.APPS -> navigate(Routes.Apps)
+        AssistantDestination.SETTINGS -> navigate(Routes.Settings())
+        AssistantDestination.SETTINGS_LANGUAGES -> navigate(Routes.Settings(SettingsSection.LANGUAGES.name))
+        AssistantDestination.SETTINGS_PROFILE -> navigate(Routes.Settings(SettingsSection.PROFILE.name))
+        AssistantDestination.SETTINGS_OFFLINE -> navigate(Routes.Settings(SettingsSection.OFFLINE.name))
+        AssistantDestination.SETTINGS_PERMISSIONS -> navigate(Routes.Settings(SettingsSection.PERMISSIONS.name))
+        AssistantDestination.SETTINGS_OVERLAY -> navigate(Routes.Settings(SettingsSection.OVERLAY.name))
+        AssistantDestination.SETTINGS_XIAOMI -> navigate(Routes.Settings(SettingsSection.XIAOMI.name))
+        AssistantDestination.SETTINGS_BACKEND -> navigate(Routes.Settings(SettingsSection.BACKEND.name))
+        AssistantDestination.SETTINGS_PRIVACY -> navigate(Routes.Settings(SettingsSection.PRIVACY.name))
+        AssistantDestination.SETTINGS_ABOUT -> navigate(Routes.Settings(SettingsSection.ABOUT.name))
+        AssistantDestination.PROFILE_DETAIL -> target.profileId?.let { navigate(Routes.ProfileDetail(it)) } ?: openTab(Tab.PROFILES)
+    }
 }
 
 @Composable

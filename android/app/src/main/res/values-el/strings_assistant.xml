@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- X3: Βοηθός (chatbot). TODO(phase 6): τα κείμενα μαζί με τον σχεδιασμό. -->
+    <string name="cd_send">Αποστολή</string>
+    <string name="assistant_hint">Ρώτησε για τις υπαγορεύσεις σου ή το Pesto…</string>
+    <string name="assistant_intro">Ρώτησε για τα στατιστικά σου, ψάξε στις υπαγορεύσεις σου ή άνοιξε οποιαδήποτε οθόνη.</string>
+    <string name="assistant_suggestion_stats">Πόσα λεπτά έχω κερδίσει;</string>
+    <string name="assistant_suggestion_recent">Τι υπαγόρευσα πρόσφατα;</string>
+    <string name="assistant_suggestion_offline">Πώς δουλεύει η υπαγόρευση εκτός σύνδεσης;</string>
+    <string name="assistant_thinking">Σκέφτεται…</string>
+    <string name="assistant_open_destination">Άνοιγμα: %1$s</string>
+    <string name="assistant_error_network">Δεν υπήρξε απάντηση από τον backend. Δοκίμασε ξανά.</string>
+    <string name="assistant_unpaired">Σύνδεσε πρώτα τη συσκευή με τον backend για να χρησιμοποιήσεις τον Βοηθό.</string>
+    <string name="assistant_pair_open">Άνοιγμα ρυθμίσεων backend</string>
+</resources>
