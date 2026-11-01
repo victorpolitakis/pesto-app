@@ -10,7 +10,6 @@ import com.victorpolitakis.pesto.util.PestoLog
 import com.victorpolitakis.pesto.util.WallClock
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,7 +53,6 @@ class DictationController @Inject constructor(
     val ui: StateFlow<DictationUi> = _ui.asStateFlow()
 
     private var session: DictationSession? = null
-    private var watcher: Job? = null
 
     val isActive get() = session != null
 
@@ -79,15 +77,15 @@ class DictationController @Inject constructor(
         val s = DictationSession(start, audio ?: this.audio.get(), backend.get(), scope, log, SystemClock::elapsedRealtime)
         session = s
         s.start()
-        watcher = scope.launch {
-            launch { s.state.collect { if (session === s) _ui.value = DictationUi.Active(it) } }
+        scope.launch {
+            val states = launch { s.state.collect { if (session === s) _ui.value = DictationUi.Active(it) } }
             val outcome = s.outcome.await()
+            states.cancel()
             session = null
             log.event("end outcome=${outcome.javaClass.simpleName}")
             _ui.value = DictationUi.Ended(outcome)
             // build() never fails, and a dictation with text always had its start sent.
             (delivery ?: this@DictationController.delivery.get()).deliver(outcome, start.await(), startedAt)
-            watcher?.cancel()
         }
         return true
     }

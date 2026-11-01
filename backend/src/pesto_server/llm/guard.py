@@ -74,7 +74,8 @@ _CODE_RE = re.compile(
     r"|^\s*(import\s+\w+|from\s+[\w.]+\s+import\b)"
     r"|^\s*(function|const|let|var)\s+\w+"
     r"|^\s*(return|print\(|console\.log|#include)"
-    r"|\bselect\b.+\bfrom\b"
+    r"|\bselect\s+(?:\*|\w+(?:\s*,\s*\w+)*)\s+from\s+\w+(?:\s+where\b|\s*;)"
+    r"|\bselect\s+\*\s+from\s+\w+"
     r"|[{}]\s*$",
     re.MULTILINE,
 )
@@ -113,8 +114,12 @@ def _stems(text: str) -> set[str]:
 
 
 def _has_question(text: str) -> bool:
-    # Greek uses ";" (or U+037E) as the question mark.
-    return any(mark in text for mark in ("?", ";", ";"))
+    # Greek uses U+037E, and its look-alike ";", as the question mark. In
+    # other text a semicolon is not a question.
+    if "?" in text or "\u037e" in text:
+        return True
+    share = greek_share(text)
+    return ";" in text and share is not None and share > 0.5
 
 
 def output_guard(transcript: str, output: str, profile: Profile) -> str | None:

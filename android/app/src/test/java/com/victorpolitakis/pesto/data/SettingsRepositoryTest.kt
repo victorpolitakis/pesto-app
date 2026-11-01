@@ -80,6 +80,12 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun `a corrupt file gives the defaults, not a crash`() = runTest {
+        File(folder.root, "settings.preferences_pb").writeBytes(byteArrayOf(1, 2, 3, 4, 5))
+        assertEquals(AppSettings(), settings().stored.first())
+    }
+
+    @Test
     fun `offline by default and the experimental preload are off, and are kept`() = runTest {
         val repo = settings()
         assertEquals(false, repo.stored.first().offlineDefault)

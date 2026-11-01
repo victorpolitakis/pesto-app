@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.victorpolitakis.pesto.R
 import com.victorpolitakis.pesto.di.AppScope
@@ -15,9 +16,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -70,7 +73,11 @@ class SettingsRepository @Inject constructor(
     @AppScope scope: CoroutineScope,
 ) : OverlayMethodProvider {
     /** What the file says. The first value waits for the file: the StartBuilder reads this one. */
-    val stored: Flow<AppSettings> = store.data.map { read(it) }.distinctUntilChanged()
+    val stored: Flow<AppSettings> = store.data
+        // A corrupt or unreadable file (CorruptionException is an IOException) gives the defaults, not a crash.
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { read(it) }
+        .distinctUntilChanged()
 
     /**
      * The same, in memory, for the accessibility service, which reads the overlay
