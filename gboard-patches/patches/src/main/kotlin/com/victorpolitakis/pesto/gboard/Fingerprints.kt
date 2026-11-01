@@ -4,6 +4,10 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.methodCall
 import app.morphe.patcher.string
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /**
  * Fingerprints for the "Gboard with Pesto" patches.
@@ -14,9 +18,16 @@ import app.morphe.patcher.string
  * are not relied upon.
  */
 
+/** Part of the log tag of the signature utilities class, `.../inputmethod/utils/SignatureUtils`. */
+internal const val SIGNATURE_UTILS_TAG = "/SignatureUtils"
+
 /**
- * The signature check: a static `(Context, String) -> boolean` in a class whose log tag contains
- * `SignatureUtils`, comparing two byte arrays with `Arrays.equals`.
+ * The signature check: a `public static (Context, String) -> boolean` that compares two byte arrays
+ * with `Arrays.equals`, in the class whose log tag contains `SignatureUtils`.
+ *
+ * The tag is not in the check itself: it is in the class's `<clinit>` and in the logs of
+ * `c(Context, String)[B`. So the class is matched by the tag in any of its methods, and the method
+ * by its flags, signature and the `Arrays.equals` call.
  * Observed: `sfr.a` (18.5.4), `akft.a` (18.5.6).
  */
 internal object SignatureCheckFingerprint : Fingerprint(
@@ -24,14 +35,21 @@ internal object SignatureCheckFingerprint : Fingerprint(
     returnType = "Z",
     parameters = listOf("Landroid/content/Context;", "Ljava/lang/String;"),
     filters = listOf(
-        string("/SignatureUtils", StringComparisonType.CONTAINS),
-        methodCall(
-            definingClass = "Ljava/util/Arrays;",
-            name = "equals",
-            parameters = listOf("[B", "[B"),
-        ),
+        methodCall(smali = "Ljava/util/Arrays;->equals([B[B)Z"),
     ),
+    custom = { method, classDef ->
+        AccessFlags.PUBLIC.isSet(method.accessFlags) && classDef.containsString(SIGNATURE_UTILS_TAG)
+    },
 )
+
+/** Whether any method of the class loads a string constant that contains [substring]. */
+internal fun ClassDef.containsString(substring: String): Boolean =
+    methods.any { method ->
+        method.implementation?.instructions?.any { instruction ->
+            val reference = (instruction as? ReferenceInstruction)?.reference
+            reference is StringReference && substring in reference.string
+        } == true
+    }
 
 /**
  * Gboard's own voice-input handler for the mic key. Identified by its log line
@@ -74,3 +92,15 @@ internal object ImeServiceOnCreateFingerprint : Fingerprint(
 
 // The language seed needs no fingerprint: it reads the application class from the manifest and
 // walks up to the superclass that declares attachBaseContext (see LanguageSeedPatch).
+
+/**
+ * Every fingerprint of these patches. A fingerprint is a global object that keeps its match; the
+ * patcher clears them in `Patcher.get()`, and code that runs patches without it (the tests) clears
+ * them with `clearMatch()` through this list.
+ */
+internal val gboardFingerprints: List<Fingerprint> = listOf(
+    SignatureCheckFingerprint,
+    VoiceInputHandlerFingerprint,
+    NgaVoiceInputHandlerFingerprint,
+    ImeServiceOnCreateFingerprint,
+)
