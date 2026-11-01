@@ -11,6 +11,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // The Morphe patcher (app.morphe), built from public source into mavenLocal by
+        // gboard-patches/tools/bootstrap-morphe.sh, and its smali fork from JitPack.
+        mavenLocal()
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

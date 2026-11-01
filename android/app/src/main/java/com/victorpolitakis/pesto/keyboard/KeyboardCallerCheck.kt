@@ -2,7 +2,6 @@ package com.victorpolitakis.pesto.keyboard
 
 import android.content.Context
 import android.content.pm.PackageManager
-import com.victorpolitakis.pesto.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -41,16 +40,6 @@ class KeyboardCallerCheck @Inject constructor(
             .filter { it.length == 64 && it.all { c -> c.isDigit() || c.lowercaseChar() in 'a'..'f' } }
             .map { hex -> ByteArray(32) { i -> hex.substring(i * 2, i * 2 + 2).toInt(16).toByte() } }
     }
-}
-
-/**
- * The certificate pinned at build time, `pesto.trustedKeyboardSha256` in android/local.properties.
- * TODO(phase 3): add the certificate of the local key the on-device patcher signs the keyboard with.
- */
-class BuildConfigTrustedKeyboards @Inject constructor() : TrustedKeyboards {
-    private val pinned by lazy { KeyboardCallerCheck.parseSha256s(BuildConfig.TRUSTED_KEYBOARD_SHA256) }
-
-    override fun certificates(): List<ByteArray> = pinned
 }
 
 class PackageManagerCertificates @Inject constructor(

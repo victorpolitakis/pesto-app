@@ -8,6 +8,10 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- The experimental method 2 of the button (Δ12), in the release build too. Asked only with that method. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- The on-device keyboard patcher (phase 3): install and remove the patched keyboard. Asked
+         only when the Patch Keyboard switch is turned on (phase 4). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <!-- Names and icons of the apps of the History (C8): the apps with a launcher icon, without QUERY_ALL_PACKAGES. -->
     <queries>
@@ -21,6 +25,7 @@
     <application
         android:name=".PestoApp"
         android:allowBackup="false"
+        android:largeHeap="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
@@ -59,6 +64,12 @@
             tools:ignore="ExportedService" />
 
         <!-- The offline model in a process of its own: under memory pressure it goes, not the accessibility service. -->
+        <!-- Builds the patched keyboard in a large-heap process of its own (phase 3). -->
+        <service
+            android:name=".keyboard.KeyboardPatchService"
+            android:exported="false"
+            android:process=":patcher" />
+
         <service
             android:name=".local.AsrService"
             android:exported="false"

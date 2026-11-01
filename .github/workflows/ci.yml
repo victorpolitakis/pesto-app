@@ -32,6 +32,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6 # also validates the Gradle wrapper
         with:
           cache-provider: basic # actions/cache, not the default proprietary cache with its own terms of use
+      # The on-device keyboard patcher (phase 3) embeds the Morphe patcher and the gboard-patches
+      # bundle. Morphe publishes only to GitHub Packages (needs a token), so the patcher and its
+      # settings plugin are built from their public source into the local Maven repository instead.
+      # An ephemeral GPG key, thrown away with the runner, signs those publications.
+      - name: Bootstrap Morphe toolchain
+        working-directory: ${{ github.workspace }}
+        run: |
+          gpg --batch --passphrase '' --quick-gen-key "pesto-ci <ci@pesto.local>" default default never
+          gboard-patches/tools/bootstrap-morphe.sh -Psigning.gnupg.keyName=ci@pesto.local
       # UI validation: level 1 is lintDebug (Android Lint with compose-lints); levels 2 and 3 are in the
       # Robolectric tests of every screen (layout on the semantics tree, accessibility checks).
+      # assembleDebug also builds the gboard-patches bundle (:patches:buildAndroid) as an app asset.
       - run: ./gradlew assembleDebug testDebugUnitTest lintDebug --console=plain

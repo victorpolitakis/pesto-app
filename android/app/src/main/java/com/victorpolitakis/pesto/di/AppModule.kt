@@ -30,7 +30,7 @@ import com.victorpolitakis.pesto.data.TermDao
 import com.victorpolitakis.pesto.dictation.Delivery
 import com.victorpolitakis.pesto.dictation.OutcomeDelivery
 import com.victorpolitakis.pesto.insert.Inserter
-import com.victorpolitakis.pesto.keyboard.BuildConfigTrustedKeyboards
+import com.victorpolitakis.pesto.keyboard.TrustedLocalKeyboard
 import com.victorpolitakis.pesto.keyboard.PackageManagerCertificates
 import com.victorpolitakis.pesto.keyboard.SigningCertificates
 import com.victorpolitakis.pesto.keyboard.TrustedKeyboards
@@ -91,7 +91,7 @@ abstract class AppModule {
     @Binds abstract fun network(impl: AndroidNetworkCheck): NetworkCheck
 
     // The patched keyboard's dictation service (PestoDictationService): who may call it.
-    @Binds abstract fun trustedKeyboards(impl: BuildConfigTrustedKeyboards): TrustedKeyboards
+    @Binds abstract fun trustedKeyboards(impl: TrustedLocalKeyboard): TrustedKeyboards
 
     @Binds abstract fun signingCertificates(impl: PackageManagerCertificates): SigningCertificates
 

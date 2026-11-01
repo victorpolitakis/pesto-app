@@ -45,6 +45,38 @@ val fetchSherpa = tasks.register("fetchSherpaOnnx") {
 fun sha256(f: File): String = MessageDigest.getInstance("SHA-256")
     .digest(f.readBytes()).joinToString("") { "%02x".format(it) }
 
+// The "Gboard with Pesto" patches bundle (phase 1), built by its own Gradle build and shipped as an
+// asset the on-device patcher loads (phase 3). The sub-build needs the Morphe toolchain in
+// mavenLocal (gboard-patches/tools/bootstrap-morphe.sh), on CI too.
+val gboardPatchesDir = rootProject.file("../gboard-patches")
+val patchesAssets = layout.buildDirectory.dir("generated/pestoPatches").get().asFile
+val gradlewName = if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew"
+
+val buildGboardPatches = tasks.register<Exec>("buildGboardPatches") {
+    workingDir = gboardPatchesDir
+    commandLine("./$gradlewName", ":patches:buildAndroid", "--console=plain")
+    // Re-run only when the patches or extension change.
+    inputs.files(fileTree(gboardPatchesDir) {
+        include("patches/src/**", "extensions/**/src/**", "**/*.gradle.kts", "gradle/libs.versions.toml")
+        exclude("**/build/**")
+    }).withPropertyName("gboardPatchesSources")
+    outputs.dir("$gboardPatchesDir/patches/build/libs")
+}
+
+val copyPatchesAsset = tasks.register<Copy>("copyPatchesAsset") {
+    dependsOn(buildGboardPatches)
+    from("$gboardPatchesDir/patches/build/libs") {
+        include("patches-*.mpp")
+        rename { "gboard-patches.mpp" }
+    }
+    into(File(patchesAssets, "patches"))
+    // Exactly one bundle, so the patcher has no choice to make.
+    doLast {
+        val count = File(patchesAssets, "patches").listFiles()?.size ?: 0
+        check(count == 1) { "expected one patches bundle as an asset, found $count" }
+    }
+}
+
 android {
     namespace = "com.victorpolitakis.pesto"
     compileSdk = 37
@@ -102,6 +134,8 @@ android {
     // the assets of the app, not of the test source set, so they go to the debug build only.
     sourceSets {
         getByName("debug").assets.srcDir("$projectDir/schemas")
+        // The patches bundle, for every build type (the patched keyboard is built on the phone).
+        getByName("main").assets.srcDir(patchesAssets)
     }
 
     // Level 1 of the UI validation: Android Lint with compose-lints, on CI. No baseline:
@@ -144,6 +178,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
     implementation(files(sherpaAar) { builtBy(fetchSherpa) })
+    // Run on the phone to patch Gboard (phase 3).
+    implementation(libs.morphe.patcher)
+    implementation(libs.morphe.smali)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -157,3 +194,6 @@ dependencies {
     testImplementation(libs.compose.ui.test.junit4.accessibility)
     debugImplementation(libs.compose.ui.test.manifest)
 }
+
+// The patches bundle must be copied before assets are merged.
+tasks.named("preBuild").configure { dependsOn(copyPatchesAsset) }

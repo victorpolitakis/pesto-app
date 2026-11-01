@@ -7,4 +7,8 @@
     <!-- The versions are chosen and pinned on purpose (Δ1): an update is a decision, not a lint finding. -->
     <issue id="GradleDependency" severity="ignore" />
     <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <!-- BouncyCastle (bcpkix-jdk18on), a transitive dependency of the Morphe patcher that signs the
+         patched keyboard (phase 3), ships an empty X509TrustManager. It is in the library, not in
+         Pesto's code, and the patcher uses it to sign APKs, not for network traffic. -->
+    <issue id="TrustAllX509TrustManager" severity="ignore" />
 </lint>
