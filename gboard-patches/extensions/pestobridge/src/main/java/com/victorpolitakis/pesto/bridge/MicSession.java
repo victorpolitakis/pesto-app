@@ -4,7 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
+import android.inputmethodservice.InputMethodService;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
@@ -18,6 +18,7 @@ import android.os.Messenger;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
 import java.io.IOException;
@@ -132,7 +133,7 @@ final class MicSession {
             start.replyTo = incoming;
             Bundle data = new Bundle();
             data.putParcelable(DictationProtocol.KEY_PCM_FD, readEnd);
-            data.putString(DictationProtocol.KEY_LANGUAGES, enabledLanguageTags());
+            putField(data);
             start.setData(data);
             service.send(start);
             // The service owns the read end now.
@@ -142,6 +143,32 @@ final class MicSession {
         } catch (IOException | RemoteException | RuntimeException e) {
             Log.w(TAG, "could not start streaming", e);
             finish();
+        }
+    }
+
+    /**
+     * The field the keyboard types into, and the text around the cursor: Pesto picks the profile from
+     * the package, keeps incognito fields out of its History, refuses password fields, and joins the
+     * dictated text to the text around it. The text around the cursor stays on the phone.
+     */
+    private void putField(Bundle data) {
+        if (imeService instanceof InputMethodService) {
+            EditorInfo editor = ((InputMethodService) imeService).getCurrentInputEditorInfo();
+            if (editor != null) {
+                data.putString(DictationProtocol.KEY_PACKAGE, editor.packageName);
+                data.putInt(DictationProtocol.KEY_INPUT_TYPE, editor.inputType);
+                data.putInt(DictationProtocol.KEY_IME_OPTIONS, editor.imeOptions);
+                if (editor.hintText != null) {
+                    data.putString(DictationProtocol.KEY_HINT, editor.hintText.toString());
+                }
+            }
+        }
+        InputConnection ic = GboardReflection.currentInputConnection(imeService);
+        if (ic != null) {
+            CharSequence before = ic.getTextBeforeCursor(DictationProtocol.CONTEXT_CHARS, 0);
+            CharSequence after = ic.getTextAfterCursor(DictationProtocol.CONTEXT_CHARS, 0);
+            data.putString(DictationProtocol.KEY_TEXT_BEFORE, before == null ? "" : before.toString());
+            data.putString(DictationProtocol.KEY_TEXT_AFTER, after == null ? "" : after.toString());
         }
     }
 
@@ -210,6 +237,13 @@ final class MicSession {
                 main.post(() -> commitIfLive(text));
                 finish();
                 return true;
+            case DictationProtocol.MSG_ERROR:
+                Bundle error = message.getData();
+                // TODO(design-panel): show the reason in the panel before it closes.
+                Log.i(TAG, "dictation ended without text: "
+                        + (error == null ? null : error.getString(DictationProtocol.KEY_REASON)));
+                finish();
+                return true;
             default:
                 return false;
         }
@@ -217,7 +251,8 @@ final class MicSession {
 
     /** Commits the transcript, unless the session was cancelled, in which case it is discarded. */
     private void commitIfLive(String text) {
-        if (text == null || cancelled.get()) return;
+        // The text is already joined to the text around the cursor by Pesto: commit it as is.
+        if (text == null || text.isEmpty() || cancelled.get()) return;
         InputConnection ic = GboardReflection.currentInputConnection(imeService);
         if (ic != null) {
             ic.commitText(text, 1);
@@ -261,6 +296,9 @@ final class MicSession {
         if (finished.getAndSet(true)) return;
         panel.hide();
         stopRecorder();
+        // Close the pipe, so the service never waits for audio that will not come (e.g. when the
+        // microphone failed before recording began). Closing it twice is harmless.
+        closeQuietly(writeEnd);
         if (connection != null) {
             try {
                 context.unbindService(connection);
@@ -275,17 +313,12 @@ final class MicSession {
         }
     }
 
-    /** The enabled language tags Gboard stores, for the service to pick recognizers; may be empty. */
-    private String enabledLanguageTags() {
+    private static void closeQuietly(ParcelFileDescriptor fd) {
+        if (fd == null) return;
         try {
-            Context storage = context.createDeviceProtectedStorageContext();
-            SharedPreferences prefs = storage.getSharedPreferences(
-                    context.getPackageName() + "_preferences", Context.MODE_PRIVATE);
-            // Gboard's preference key; must match PestoLocales.KEY_ENABLED_LANGUAGE_TAGS in the
-            // patches module (RESEARCH §10). The two live in separate modules, so this is a literal.
-            return prefs.getString("enabled_ime_language_tags", "");
-        } catch (RuntimeException e) {
-            return "";
+            fd.close();
+        } catch (IOException ignored) {
+            // Already closed.
         }
     }
 }
