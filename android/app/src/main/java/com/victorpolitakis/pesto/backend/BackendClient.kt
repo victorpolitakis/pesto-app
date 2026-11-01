@@ -33,9 +33,15 @@ sealed interface Incoming {
     }
 }
 
+/** Where the speech recognition of a dictation ran: the History shows it (PLAN_offline-mode.md §4β). */
+enum class DictationMode(val stored: String) { ONLINE("online"), OFFLINE("offline") }
+
 /** One connection = one dictation (docs/protocol.md). */
 interface BackendConnection {
     val incoming: ReceiveChannel<Incoming>
+
+    /** Soniox through the backend, unless it is the model on the phone (local/LocalConnection). */
+    val mode: DictationMode get() = DictationMode.ONLINE
 
     /** Sends [start], then what was sent before it: start is always the first message. Once. */
     fun start(start: Start)

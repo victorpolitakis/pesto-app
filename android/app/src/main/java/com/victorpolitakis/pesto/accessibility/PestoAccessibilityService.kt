@@ -9,6 +9,7 @@ import com.victorpolitakis.pesto.dictation.ButtonDecision
 import com.victorpolitakis.pesto.dictation.DictationController
 import com.victorpolitakis.pesto.dictation.FieldRules
 import com.victorpolitakis.pesto.dictation.Trigger
+import com.victorpolitakis.pesto.local.OfflinePreload
 import com.victorpolitakis.pesto.overlay.OverlayController
 import com.victorpolitakis.pesto.overlay.OverlayMethodProvider
 import com.victorpolitakis.pesto.util.PestoLog
@@ -27,6 +28,7 @@ class PestoAccessibilityService : AccessibilityService() {
     @Inject lateinit var controller: Lazy<DictationController>
     @Inject lateinit var overlayMethod: OverlayMethodProvider
     @Inject lateinit var log: PestoLog
+    @Inject lateinit var preload: OfflinePreload
 
     private val main = Handler(Looper.getMainLooper())
     private val update = Runnable { update() }
@@ -34,6 +36,7 @@ class PestoAccessibilityService : AccessibilityService() {
     private var tracker: FocusTracker? = null
     private var snapshot: Snapshot? = null
     private var lastDecision: String? = null
+    private var buttonShown = false
 
     override fun onServiceConnected() {
         bridge.service = this
@@ -73,10 +76,14 @@ class PestoAccessibilityService : AccessibilityService() {
                 val a = d.anchor
                 logDecision("shown package=${s.field?.packageName} method=${overlayMethod.current()} anchor=${a.left},${a.top},${a.right},${a.bottom}")
                 overlay.showButton(d.anchor)
+                if (!buttonShown) preload.buttonShown()
+                buttonShown = true
             }
             is ButtonDecision.Hidden -> {
                 logDecision("hidden reason=${d.reason} package=${s.field?.packageName} keyboard=${s.keyboardVisible}")
                 overlay.hideButton()
+                if (buttonShown) preload.buttonHidden()
+                buttonShown = false
             }
         }
     }

@@ -3,11 +3,12 @@ package com.victorpolitakis.pesto.data
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.victorpolitakis.pesto.backend.DictationMode
 
 /**
  * One dictation in the History (C8). Everything of the backend's `final`, plus
- * the app and the field. The last three columns came with v2 (phase 3): their
- * defaults are the ones of the migration, which Room checks after it.
+ * the app and the field. The last columns came with v2 (phase 3) and v3 (offline
+ * mode): their defaults are the ones of the migrations, which Room checks after them.
  */
 @Entity(tableName = "dictations")
 data class DictationEntity(
@@ -38,4 +39,6 @@ data class DictationEntity(
     @ColumnInfo(name = "raw_words", defaultValue = "0") val rawWords: Int,
     /** The tap, wall clock. For the rows from before v2: [createdAt]. */
     @ColumnInfo(name = "started_at", defaultValue = "0") val startedAt: Long,
+    /** `online` (Soniox) or `offline` (the model on the phone), since v3. The older rows: `online`. */
+    @ColumnInfo(defaultValue = "'online'") val mode: String = DictationMode.ONLINE.stored,
 )

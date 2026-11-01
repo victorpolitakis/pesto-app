@@ -17,6 +17,7 @@ import com.victorpolitakis.pesto.dictation.DictationController
 import com.victorpolitakis.pesto.dictation.DictationUi
 import com.victorpolitakis.pesto.dictation.Outcome
 import com.victorpolitakis.pesto.dictation.Phase
+import com.victorpolitakis.pesto.local.LocalBackendClient
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
 import com.victorpolitakis.pesto.util.PestoLog
 import kotlinx.coroutines.Job
@@ -162,6 +163,7 @@ class OverlayController(
         outcome.reason == "no_server" -> R.string.error_no_server
         outcome.reason == Incoming.UNAUTHORIZED -> R.string.error_unpaired
         outcome.reason.startsWith("mic_") -> R.string.error_mic_blocked
+        outcome.reason == LocalBackendClient.MODEL_MISSING -> R.string.error_model_missing
         else -> R.string.error_generic
     }
 

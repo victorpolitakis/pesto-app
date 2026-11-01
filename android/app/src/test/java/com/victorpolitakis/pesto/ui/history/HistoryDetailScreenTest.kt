@@ -90,4 +90,19 @@ class HistoryDetailScreenTest {
         rule.assertLeftAligned("dictation_text", "record")
         rule.assertAccessible()
     }
+
+    @Test
+    fun `the record says online or offline, and why the profile was not applied`() {
+        show()
+        rule.onNodeWithTag("field_mode").performScrollTo().assertTextContains("Online (Soniox)")
+    }
+
+    @Test
+    fun `an offline dictation says so, with the profile that was not applied`() {
+        show(detail.copy(mode = "offline", rawText = detail.text, fallbackReason = "offline", llmMs = null))
+        rule.onNodeWithTag("field_mode").performScrollTo().assertTextContains("Offline (στο κινητό)")
+        rule.onNodeWithTag("field_profile").performScrollTo().assertTextContains("Email (mail)")
+        rule.onNodeWithTag("field_fallback").performScrollTo().assertTextContains("offline")
+        rule.onNodeWithTag("field_llm_ms").performScrollTo().assertTextContains("—")
+    }
 }

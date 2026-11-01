@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.victorpolitakis.pesto.backend.DictationMode
 
 class OutcomeDeliveryTest {
     private val inserted = mutableListOf<String>()
@@ -79,5 +80,13 @@ class OutcomeDeliveryTest {
         assertNull(recorded.single().final)
         assertEquals("μέχρι εδώ", recorded.single().lostText)
         assertEquals("mail", recorded.single().requestedProfile)
+    }
+
+    @Test
+    fun `the mode of the dictation goes to the History`() = runTest {
+        delivery.deliver(Outcome.Done(final, DictationMode.OFFLINE), start, 900L)
+        delivery.deliver(Outcome.Done(final), start, 900L)
+        delivery.deliver(Outcome.ConnectionLost("μέχρι εδώ"), start, 900L)
+        assertEquals(listOf(DictationMode.OFFLINE, DictationMode.ONLINE, DictationMode.ONLINE), recorded.map { it.mode })
     }
 }

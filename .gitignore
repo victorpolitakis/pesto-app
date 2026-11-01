@@ -28,3 +28,6 @@ build/
 captures/
 *.hprof
 android-spike/
+
+#sherpa-onnx AAR, fetched by the build (fetchSherpaOnnx)
+android/app/libs/

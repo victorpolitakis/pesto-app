@@ -1,3 +1,5 @@
+import java.net.URI
+import java.security.MessageDigest
 import java.util.Properties
 
 plugins {
@@ -17,6 +19,25 @@ val localProperties = Properties().apply {
 }
 val backendUrl = localProperties.getProperty("pesto.backendUrl", "ws://127.0.0.1:8000/v1/dictate")
 
+// sherpa-onnx (Apache-2.0), the runtime of the offline model, is not on Maven: the AAR of its
+// GitHub release, checked by sha256, into app/libs (not in git). Once per checkout, CI too.
+val sherpaVersion = "2.0.1"
+val sherpaSha256 = "a8d09d1d32f3eb8520482c6d3d43fae674681c5b050385967c70a3c2c9bf0ee7"
+val sherpaAar = file("libs/sherpa-onnx-$sherpaVersion.aar")
+val fetchSherpa = tasks.register("fetchSherpaOnnx") {
+    outputs.file(sherpaAar)
+    doLast {
+        if (sherpaAar.exists() && sha256(sherpaAar) == sherpaSha256) return@doLast
+        sherpaAar.parentFile.mkdirs()
+        val url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v$sherpaVersion/sherpa-onnx-$sherpaVersion.aar"
+        URI(url).toURL().openStream().use { input -> sherpaAar.outputStream().use { input.copyTo(it) } }
+        check(sha256(sherpaAar) == sherpaSha256) { "sherpa-onnx AAR: wrong sha256" }
+    }
+}
+
+fun sha256(f: File): String = MessageDigest.getInstance("SHA-256")
+    .digest(f.readBytes()).joinToString("") { "%02x".format(it) }
+
 android {
     namespace = "com.victorpolitakis.pesto"
     compileSdk = 37
@@ -29,6 +50,9 @@ android {
         versionName = "0.3.0"
 
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+
+        // The offline model runs only on arm64 phones; the emulator dictation_api36 is arm64 too.
+        ndk { abiFilters += "arm64-v8a" }
     }
 
     buildTypes {
@@ -111,6 +135,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    implementation(files(sherpaAar) { builtBy(fetchSherpa) })
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

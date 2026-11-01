@@ -46,6 +46,13 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+/** 2 → 3 (offline mode, PLAN_offline-mode.md §4β): online or offline. Every older dictation was online. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `dictations` ADD COLUMN `mode` TEXT NOT NULL DEFAULT 'online'")
+    }
+}
+
 /** The content sync triggers Room creates for DictationFts on a new install (its `contentSyncTriggers`). */
 private val FTS_TRIGGERS = listOf(
     "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_dictations_fts_BEFORE_UPDATE BEFORE UPDATE ON `dictations` BEGIN DELETE FROM `dictations_fts` WHERE `docid`=OLD.`rowid`; END",

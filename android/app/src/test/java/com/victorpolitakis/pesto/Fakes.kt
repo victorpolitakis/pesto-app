@@ -12,6 +12,9 @@ import com.victorpolitakis.pesto.data.AppProfileEntity
 import com.victorpolitakis.pesto.data.DeviceTokenStore
 import com.victorpolitakis.pesto.data.TermDao
 import com.victorpolitakis.pesto.data.TermEntity
+import com.victorpolitakis.pesto.local.ModelFiles
+import com.victorpolitakis.pesto.local.Transcriber
+import com.victorpolitakis.pesto.local.Transcript
 import com.victorpolitakis.pesto.protocol.ClientMessage
 import com.victorpolitakis.pesto.protocol.ServerMessage
 import com.victorpolitakis.pesto.protocol.Start
@@ -169,4 +172,31 @@ class FakeLog : PestoLog {
     override fun event(message: String) {
         lines += "event $message"
     }
+}
+
+/** The offline model without sherpa-onnx: [text] null is a model that failed or a process that died. */
+class FakeTranscriber(var text: String? = "Καλημέρα Γιώργο") : Transcriber {
+    /** prepare, transcribe and release, in order. */
+    val calls = mutableListOf<String>()
+
+    /** The pcm of the last transcribe. */
+    var heard: ByteArray? = null
+
+    override fun prepare() {
+        calls += "prepare"
+    }
+
+    override suspend fun transcribe(pcm: ByteArray): Transcript? {
+        calls += "transcribe"
+        heard = pcm
+        return text?.let { Transcript(it, sttMs = 420) }
+    }
+
+    override fun release() {
+        calls += "release"
+    }
+}
+
+class FakeModelFiles(var ready: Boolean = true) : ModelFiles {
+    override fun isReady() = ready
 }

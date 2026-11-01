@@ -13,7 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Spike P1 and step 2: the dictations of v1 survive the migration, and the search finds them. */
+/** Spike P1 and step 2: the dictations of v1 survive the migrations, and the search finds them. v3: the mode. */
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {
     @get:Rule
@@ -103,15 +103,24 @@ class MigrationTest {
     }
 
     @Test
-    fun `room opens a v1 file with the migration and accepts the schema`() {
+    fun `room opens a v1 file with the migrations and accepts the schema`() {
         v1()
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val room = Room.databaseBuilder(context, PestoDatabase::class.java, DB).addMigrations(MIGRATION_1_2).build()
+        val room = Room.databaseBuilder(context, PestoDatabase::class.java, DB).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
         try {
             assertEquals(3, runBlocking { room.dictations().count() })
         } finally {
             room.close()
         }
+    }
+
+    @Test
+    fun `2 to 3 keeps every dictation, and they were all online`() {
+        v1()
+        val before = migrated().use { it.rows("SELECT * FROM dictations ORDER BY id") }
+        val db = helper.runMigrationsAndValidate(DB, 3, true, MIGRATION_2_3)
+        assertEquals(before.map { it + "online" }, db.rows("SELECT * FROM dictations ORDER BY id"))
+        assertEquals(listOf(1L), db.search(SearchText.ftsQuery("καλημερα")!!))
     }
 
     private companion object {

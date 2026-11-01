@@ -1,5 +1,6 @@
 package com.victorpolitakis.pesto.data
 
+import com.victorpolitakis.pesto.backend.DictationMode
 import com.victorpolitakis.pesto.protocol.FieldContext
 import com.victorpolitakis.pesto.protocol.Final
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,7 @@ data class NewDictation(
     val final: Final?,
     val lostText: String?,
     val insertMethod: String,
+    val mode: DictationMode = DictationMode.ONLINE,
 )
 
 /** Where finished dictations go. An interface so the delivery can be tested without Room. */
@@ -60,6 +62,7 @@ class HistoryRepository @Inject constructor(private val dao: DictationDao) : Dic
                 searchText = SearchText.of(rawText, text),
                 rawWords = SearchText.words(rawText),
                 startedAt = dictation.startedAt,
+                mode = dictation.mode.stored,
             ),
         )
     }
@@ -123,6 +126,7 @@ class HistoryRepository @Inject constructor(private val dao: DictationDao) : Dic
         sttMs = sttMs,
         llmMs = llmMs,
         totalMs = totalMs,
+        mode = mode,
     )
 
     companion object {

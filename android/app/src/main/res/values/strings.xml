@@ -17,6 +17,7 @@
     <string name="error_unpaired">This device is not paired with the backend: open Pesto</string>
     <string name="error_mic_blocked">The microphone is blocked</string>
     <string name="error_generic">Dictation failed</string>
+    <string name="error_model_missing">The offline model is not downloaded</string>
     <string name="copied_to_clipboard">Copied, paste it</string>
 
     <!-- C3, and the permissions in Settings. -->
@@ -106,6 +107,9 @@
     <string name="detail_words">Words spoken</string>
     <string name="detail_output_words">Words in the text</string>
     <string name="detail_wpm">Words per minute</string>
+    <string name="detail_mode">Mode</string>
+    <string name="mode_online">Online (Soniox)</string>
+    <string name="mode_offline">Offline (on the phone)</string>
     <string name="detail_profile">Profile</string>
     <string name="detail_fallback">Reason for the plain text</string>
     <string name="detail_end_reason">How it ended</string>
@@ -220,6 +224,16 @@
     <string name="settings_granted">OK</string>
     <string name="settings_missing">Missing</string>
     <string name="settings_open">Open</string>
+    <string name="settings_offline">Offline dictation</string>
+    <string name="settings_offline_explained">Without a network, dictation runs on the phone by itself, without profiles.</string>
+    <string name="settings_offline_default">Offline by default</string>
+    <string name="settings_offline_default_explained">Every dictation on the phone, even with a network. Profiles are not applied.</string>
+    <string name="settings_preload_offline">Preload the offline model (experimental)</string>
+    <string name="settings_preload_offline_explained">The model loads when the button shows, so the text comes faster. It holds ~1 GB of memory while the keyboard is open.</string>
+    <string name="settings_offline_model">Offline model</string>
+    <string name="settings_offline_model_ready">Found · %1$d MB</string>
+    <string name="settings_offline_model_missing">Not downloaded</string>
+    <string name="settings_offline_credits">Offline recognition: myned-ai/parakeet-tdt-0.6b-v3-greek (CC-BY-4.0), based on NVIDIA Parakeet TDT 0.6B v3 (CC-BY-4.0).</string>
     <string name="settings_overlay">Button method</string>
     <string name="settings_overlay_accessibility">Accessibility (recommended)</string>
     <string name="settings_overlay_application">Display over apps (experimental)</string>

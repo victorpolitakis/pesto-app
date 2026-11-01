@@ -23,12 +23,21 @@ import com.victorpolitakis.pesto.data.DictationHistory
 import com.victorpolitakis.pesto.data.HistoryRepository
 import com.victorpolitakis.pesto.data.KeystoreTokenStore
 import com.victorpolitakis.pesto.data.MIGRATION_1_2
+import com.victorpolitakis.pesto.data.MIGRATION_2_3
 import com.victorpolitakis.pesto.data.PestoDatabase
 import com.victorpolitakis.pesto.data.SettingsRepository
 import com.victorpolitakis.pesto.data.TermDao
 import com.victorpolitakis.pesto.dictation.Delivery
 import com.victorpolitakis.pesto.dictation.OutcomeDelivery
 import com.victorpolitakis.pesto.insert.Inserter
+import com.victorpolitakis.pesto.local.AndroidNetworkCheck
+import com.victorpolitakis.pesto.local.AsrClient
+import com.victorpolitakis.pesto.local.LocalBackendClient
+import com.victorpolitakis.pesto.local.ModelFiles
+import com.victorpolitakis.pesto.local.ModelStore
+import com.victorpolitakis.pesto.local.NetworkCheck
+import com.victorpolitakis.pesto.local.RoutingBackendClient
+import com.victorpolitakis.pesto.local.Transcriber
 import com.victorpolitakis.pesto.overlay.OverlayMethodProvider
 import com.victorpolitakis.pesto.util.AndroidLog
 import com.victorpolitakis.pesto.util.PestoLog
@@ -56,8 +65,6 @@ annotation class AppScope
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AppModule {
-    @Binds abstract fun backend(impl: OkHttpBackendClient): BackendClient
-
     @Binds abstract fun log(impl: AndroidLog): PestoLog
 
     @Binds abstract fun delivery(impl: OutcomeDelivery): Delivery
@@ -73,9 +80,27 @@ abstract class AppModule {
 
     @Binds abstract fun api(impl: OkHttpBackendApi): BackendApi
 
+    @Binds abstract fun transcriber(impl: AsrClient): Transcriber
+
+    @Binds abstract fun modelFiles(impl: ModelStore): ModelFiles
+
+    @Binds abstract fun network(impl: AndroidNetworkCheck): NetworkCheck
+
     companion object {
         @Provides @Singleton @AppScope
         fun appScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+        // Soniox through the backend, or the model on the phone (PLAN_offline-mode.md §4).
+        @Provides @Singleton
+        fun router(
+            online: OkHttpBackendClient,
+            local: LocalBackendClient,
+            settings: SettingsRepository,
+            network: NetworkCheck,
+            log: PestoLog,
+        ) = RoutingBackendClient(online, local, { settings.settings.value.offlineDefault }, network, log)
+
+        @Provides fun backend(router: RoutingBackendClient): BackendClient = router
 
         // Only the URL: the token is the phone's own, from pairing (Δ24).
         @Provides @Singleton
@@ -99,7 +124,7 @@ abstract class AppModule {
         @Provides @Singleton
         fun database(@ApplicationContext context: Context): PestoDatabase =
             Room.databaseBuilder(context, PestoDatabase::class.java, "pesto.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
 
         @Provides fun dictationDao(db: PestoDatabase): DictationDao = db.dictations()

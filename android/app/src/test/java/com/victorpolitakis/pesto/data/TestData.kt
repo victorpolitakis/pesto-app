@@ -3,6 +3,7 @@ package com.victorpolitakis.pesto.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.victorpolitakis.pesto.backend.DictationMode
 import com.victorpolitakis.pesto.protocol.FieldContext
 import com.victorpolitakis.pesto.protocol.Final
 import com.victorpolitakis.pesto.protocol.Stats
@@ -31,6 +32,7 @@ fun newDictation(
     audioS: Double? = 2.0,
     fallbackReason: String? = null,
     insertMethod: String = "COMMIT_TEXT",
+    mode: DictationMode = DictationMode.ONLINE,
 ) = NewDictation(
     createdAt = createdAt,
     startedAt = createdAt - 3_000,
@@ -39,4 +41,5 @@ fun newDictation(
     final = audioS?.let { Final(rawText, text, profile, fallbackReason, "user", Stats(it, SearchText.words(text), 150, null, 160)) },
     lostText = if (audioS == null) text else null,
     insertMethod = insertMethod,
+    mode = mode,
 )

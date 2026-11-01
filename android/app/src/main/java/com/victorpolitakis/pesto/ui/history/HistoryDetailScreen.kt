@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.victorpolitakis.pesto.R
+import com.victorpolitakis.pesto.backend.DictationMode
 import com.victorpolitakis.pesto.data.AppDisplay
 import com.victorpolitakis.pesto.data.DictationDetail
 import com.victorpolitakis.pesto.data.ProfilesCatalog
@@ -156,6 +157,11 @@ private fun Record(d: DictationDetail, app: AppDisplay?, modifier: Modifier = Mo
         Field(stringResource(R.string.detail_words), d.words.toString(), "field_words")
         Field(stringResource(R.string.detail_output_words), d.outputWords?.toString() ?: none, "field_output_words")
         Field(stringResource(R.string.detail_wpm), d.wpm?.roundToInt()?.toString() ?: none, "field_wpm")
+        Field(
+            stringResource(R.string.detail_mode),
+            stringResource(if (d.mode == DictationMode.OFFLINE.stored) R.string.mode_offline else R.string.mode_online),
+            "field_mode",
+        )
         val profile = ProfilesCatalog.find(d.profile)
         Field(
             stringResource(R.string.detail_profile),

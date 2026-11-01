@@ -18,6 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.ZoneOffset
+import com.victorpolitakis.pesto.backend.DictationMode
 
 /** Step 3: from the record to the search, the stats and the deletion, on the real database. */
 @RunWith(AndroidJUnit4::class)
@@ -125,5 +126,23 @@ class HistoryRepositoryTest {
 
         delivery.deliver(Outcome.Done(final), Start(fieldContext = chrome.copy(isIncognito = false)), NOW)
         assertEquals(1, history.count())
+    }
+
+    @Test
+    fun `an offline dictation is recorded as offline, and counts, and is found, like any other`() = runTest {
+        history.record(newDictation("καλημέρα γιώργο", "Καλημέρα Γιώργο.", createdAt = NOW - 1_000))
+        history.record(
+            newDictation(
+                "τι ώρα είναι;", profile = "mail", fallbackReason = "offline", createdAt = NOW, mode = DictationMode.OFFLINE,
+            ),
+        )
+        val (offline, online) = history.list(10).first().map { history.get(it.id)!! }
+        assertEquals("offline", offline.mode)
+        assertEquals("mail", offline.profile)
+        assertEquals("offline", offline.fallbackReason)
+        assertEquals("online", online.mode)
+        assertEquals(2, stats.totals().first().dictations)
+        assertEquals(5, stats.totals().first().words)
+        assertEquals(listOf(offline.id), history.search("ωρα").first().map { it.item.id })
     }
 }

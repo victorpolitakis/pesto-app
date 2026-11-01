@@ -17,6 +17,7 @@
     <string name="error_unpaired">Η συσκευή δεν είναι συνδεδεμένη με τον backend: άνοιξε το Pesto</string>
     <string name="error_mic_blocked">Το μικρόφωνο είναι μπλοκαρισμένο</string>
     <string name="error_generic">Η υπαγόρευση απέτυχε</string>
+    <string name="error_model_missing">Το μοντέλο offline δεν έχει κατέβει</string>
     <string name="copied_to_clipboard">Αντιγράφηκε, κάνε επικόλληση</string>
 
     <!-- C3, and the permissions in Settings. -->
@@ -106,6 +107,9 @@
     <string name="detail_words">Λέξεις που ειπώθηκαν</string>
     <string name="detail_output_words">Λέξεις του κειμένου</string>
     <string name="detail_wpm">Λέξεις το λεπτό</string>
+    <string name="detail_mode">Λειτουργία</string>
+    <string name="mode_online">Online (Soniox)</string>
+    <string name="mode_offline">Offline (στο κινητό)</string>
     <string name="detail_profile">Προφίλ</string>
     <string name="detail_fallback">Λόγος για το σκέτο κείμενο</string>
     <string name="detail_end_reason">Πώς τελείωσε</string>
@@ -220,6 +224,16 @@
     <string name="settings_granted">Εντάξει</string>
     <string name="settings_missing">Λείπει</string>
     <string name="settings_open">Άνοιγμα</string>
+    <string name="settings_offline">Offline υπαγόρευση</string>
+    <string name="settings_offline_explained">Χωρίς δίκτυο, η υπαγόρευση γίνεται αυτόματα στο κινητό, χωρίς προφίλ.</string>
+    <string name="settings_offline_default">Offline ως προεπιλογή</string>
+    <string name="settings_offline_default_explained">Κάθε υπαγόρευση στο κινητό, και με δίκτυο. Τα προφίλ δεν εφαρμόζονται.</string>
+    <string name="settings_preload_offline">Προφόρτωση του μοντέλου offline (πειραματική)</string>
+    <string name="settings_preload_offline_explained">Το μοντέλο φορτώνεται όταν εμφανίζεται το κουμπί, ώστε το κείμενο να γράφεται πιο γρήγορα. Κρατάει ~1 GB μνήμης όσο είναι ανοιχτό το πληκτρολόγιο.</string>
+    <string name="settings_offline_model">Μοντέλο offline</string>
+    <string name="settings_offline_model_ready">Βρέθηκε · %1$d MB</string>
+    <string name="settings_offline_model_missing">Δεν έχει κατέβει</string>
+    <string name="settings_offline_credits">Αναγνώριση offline: myned-ai/parakeet-tdt-0.6b-v3-greek (CC-BY-4.0), βασισμένο στο NVIDIA Parakeet TDT 0.6B v3 (CC-BY-4.0).</string>
     <string name="settings_overlay">Μέθοδος του κουμπιού</string>
     <string name="settings_overlay_accessibility">Accessibility (προτεινόμενη)</string>
     <string name="settings_overlay_application">Εμφάνιση πάνω από εφαρμογές (πειραματική)</string>

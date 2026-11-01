@@ -78,4 +78,16 @@ class SettingsRepositoryTest {
         assertEquals(listOf("el", "en", "de", "fr", "es", "it"), Languages.all.map { it.code })
         assertEquals("de", Languages.find("de")?.code)
     }
+
+    @Test
+    fun `offline by default and the experimental preload are off, and are kept`() = runTest {
+        val repo = settings()
+        assertEquals(false, repo.stored.first().offlineDefault)
+        assertEquals(false, repo.stored.first().preloadOffline)
+        repo.setOfflineDefault(true)
+        repo.setPreloadOffline(true)
+        val s = repo.stored.first()
+        assertTrue(s.offlineDefault)
+        assertTrue(s.preloadOffline)
+    }
 }

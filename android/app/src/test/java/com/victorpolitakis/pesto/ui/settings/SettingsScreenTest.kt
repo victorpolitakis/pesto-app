@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
@@ -43,6 +44,8 @@ class SettingsScreenTest {
         onStrictLanguages = { calls += "strict $it" },
         onDefaultProfile = { calls += "default $it" },
         onOverlayMethod = { calls += "overlay $it" },
+        onOfflineDefault = { calls += "offline $it" },
+        onPreloadOffline = { calls += "preload $it" },
         onRequest = { calls += "request $it" },
         onCheckBackend = { calls += "check" },
         onPair = { calls += "pair $it" },
@@ -78,7 +81,7 @@ class SettingsScreenTest {
     @Test
     fun `every section is there, and Xiaomi only on Xiaomi`() {
         show()
-        for (s in listOf("languages", "profile", "permissions", "overlay", "backend", "privacy", "about")) {
+        for (s in listOf("languages", "profile", "offline", "permissions", "overlay", "backend", "privacy", "about")) {
             scrollTo("section_$s")
             rule.onNodeWithTag("section_$s").assertExists()
         }
@@ -225,5 +228,24 @@ class SettingsScreenTest {
         scrollTo("pair")
         rule.assertLayout()
         rule.onRoot().tryPerformAccessibilityChecks()
+    }
+
+    @Test
+    fun `offline - the two switches, off by default, and whether the model is there`() {
+        show(section = SettingsSection.OFFLINE)
+        rule.onNodeWithTag("offline_default").assertIsOff().performClick()
+        scrollTo("preload_offline")
+        rule.onNodeWithTag("preload_offline").assertIsOff().assertTextContains("πειραματική", substring = true)
+        rule.onNodeWithTag("preload_offline").performClick()
+        scrollTo("offline_model")
+        rule.onNodeWithTag("offline_model").assertTextContains("Δεν έχει κατέβει", substring = true)
+        assertEquals(listOf("offline true", "preload true"), calls)
+    }
+
+    @Test
+    fun `offline - the model found, with its size`() {
+        show(state.copy(model = ModelStatus(ready = true, bytes = 752_321_020)), section = SettingsSection.OFFLINE)
+        scrollTo("offline_model")
+        rule.onNodeWithTag("offline_model").assertTextContains("Βρέθηκε · 752 MB", substring = true)
     }
 }

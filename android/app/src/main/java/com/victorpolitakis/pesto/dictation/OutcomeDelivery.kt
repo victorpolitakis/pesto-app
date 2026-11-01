@@ -1,5 +1,6 @@
 package com.victorpolitakis.pesto.dictation
 
+import com.victorpolitakis.pesto.backend.DictationMode
 import com.victorpolitakis.pesto.data.DictationHistory
 import com.victorpolitakis.pesto.data.NewDictation
 import com.victorpolitakis.pesto.insert.Inserter
@@ -37,6 +38,7 @@ class OutcomeDelivery @Inject constructor(
                 final = (outcome as? Outcome.Done)?.final,
                 lostText = (outcome as? Outcome.ConnectionLost)?.lastText,
                 insertMethod = method.name,
+                mode = (outcome as? Outcome.Done)?.mode ?: DictationMode.ONLINE,
             ),
         )
     }

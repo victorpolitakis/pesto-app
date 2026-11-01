@@ -3,6 +3,7 @@ package com.victorpolitakis.pesto.dictation
 import com.victorpolitakis.pesto.audio.AudioCapture
 import com.victorpolitakis.pesto.backend.BackendClient
 import com.victorpolitakis.pesto.backend.BackendConnection
+import com.victorpolitakis.pesto.backend.DictationMode
 import com.victorpolitakis.pesto.backend.Incoming
 import com.victorpolitakis.pesto.protocol.Cancel
 import com.victorpolitakis.pesto.protocol.Error
@@ -37,7 +38,7 @@ data class LiveState(
 
 /** How a dictation ended. */
 sealed interface Outcome {
-    data class Done(val final: Final) : Outcome
+    data class Done(val final: Final, val mode: DictationMode = DictationMode.ONLINE) : Outcome
 
     /** The connection broke mid-dictation: [lastText] is what the panel showed (Δ14). */
     data class ConnectionLost(val lastText: String) : Outcome
@@ -159,7 +160,7 @@ class DictationSession(
                     is Partial -> _state.update { it.copy(text = m.finalText + m.pendingText) }
                     is Final -> {
                         finalizedAt?.let { log.perf("finalize_to_final", clock() - it) }
-                        end(Outcome.Done(m))
+                        end(Outcome.Done(m, conn.mode))
                     }
                     // `stt` is followed by a final with what was written; a mid-dictation
                     // `bad_request` lets the dictation continue (docs/protocol.md).

@@ -8,18 +8,22 @@ import com.victorpolitakis.pesto.data.HistoryRepository
 import com.victorpolitakis.pesto.data.PairingRepository
 import com.victorpolitakis.pesto.data.ProfilesRepository
 import com.victorpolitakis.pesto.data.SettingsRepository
+import com.victorpolitakis.pesto.local.ModelStore
 import com.victorpolitakis.pesto.overlay.OverlayMethod
 import com.victorpolitakis.pesto.permissions.PermissionPrefs
 import com.victorpolitakis.pesto.permissions.Requirement
 import com.victorpolitakis.pesto.permissions.RequirementChecks
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -34,11 +38,15 @@ class SettingsViewModel @Inject constructor(
     private val history: HistoryRepository,
     private val checks: RequirementChecks,
     private val prefs: PermissionPrefs,
+    private val models: ModelStore,
 ) : ViewModel() {
     private val resumes = MutableStateFlow(0)
     private val backend = MutableStateFlow(BackendStatus.CHECKING)
     private val pairingStatus = MutableStateFlow(PairingStatus.IDLE)
     private val confirmDeleteAll = MutableStateFlow(false)
+
+    /** On every resume too: the model may have been pushed meanwhile (phase A, adb push). */
+    private val model = resumes.map { withContext(Dispatchers.IO) { ModelStatus(models.isReady(), models.size()) } }
 
     /** The permissions of C3 for the method in the file (the Xiaomi page and the pairing have their own sections). */
     private val permissions = combine(settings.stored, resumes) { s, _ ->
@@ -49,7 +57,7 @@ class SettingsViewModel @Inject constructor(
             .map { RequirementStatus(it, checks.isGranted(it, xiaomiShown, paired)) }
     }
 
-    private val screen = combine(backend, pairingStatus, confirmDeleteAll) { b, p, c -> Triple(b, p, c) }
+    private val screen = combine(backend, pairingStatus, confirmDeleteAll, model) { b, p, c, m -> Screen(b, p, c, m) }
 
     val state: StateFlow<SettingsState> = combine(
         settings.stored,
@@ -57,7 +65,7 @@ class SettingsViewModel @Inject constructor(
         pairing.paired,
         history.total,
         screen,
-    ) { s, granted, paired, dictations, (backendStatus, pairingResult, confirm) ->
+    ) { s, granted, paired, dictations, (backendStatus, pairingResult, confirm, modelStatus) ->
         SettingsState(
             settings = s,
             permissions = granted,
@@ -68,6 +76,7 @@ class SettingsViewModel @Inject constructor(
             pairing = pairingResult,
             dictations = dictations,
             confirmDeleteAll = confirm,
+            model = modelStatus,
             version = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
             buildType = BuildConfig.BUILD_TYPE,
             loading = false,
@@ -108,6 +117,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settings.setOverlayMethod(method) }
     }
 
+    fun setOfflineDefault(on: Boolean) {
+        viewModelScope.launch { settings.setOfflineDefault(on) }
+    }
+
+    fun setPreloadOffline(on: Boolean) {
+        viewModelScope.launch { settings.setPreloadOffline(on) }
+    }
+
     /** The code is never logged (PairingRepository logs only the result). */
     fun pair(code: String) {
         viewModelScope.launch {
@@ -140,6 +157,8 @@ class SettingsViewModel @Inject constructor(
         confirmDeleteAll.value = false
         viewModelScope.launch { history.deleteAll() }
     }
+
+    private data class Screen(val backend: BackendStatus, val pairing: PairingStatus, val confirm: Boolean, val model: ModelStatus)
 
     private companion object {
         val PERMISSIONS = setOf(Requirement.MICROPHONE, Requirement.ACCESSIBILITY, Requirement.BATTERY, Requirement.OVERLAY)

@@ -69,6 +69,9 @@ data class RequirementStatus(val requirement: Requirement, val granted: Boolean)
 /** Whether the backend answers its /health. */
 enum class BackendStatus { CHECKING, ANSWERS, NO_ANSWER }
 
+/** Whether the offline model is on the phone (PLAN_offline-mode.md §3), and its size in bytes. */
+data class ModelStatus(val ready: Boolean = false, val bytes: Long = 0)
+
 /** The last pairing made from this screen. */
 enum class PairingStatus { IDLE, PAIRING, WRONG_CODE, FAILED, PAIRED }
 
@@ -83,6 +86,7 @@ data class SettingsState(
     val pairing: PairingStatus = PairingStatus.IDLE,
     val dictations: Int = 0,
     val confirmDeleteAll: Boolean = false,
+    val model: ModelStatus = ModelStatus(),
     val version: String = "",
     val buildType: String = "",
     val loading: Boolean = true,
@@ -95,6 +99,8 @@ class SettingsActions(
     val onStrictLanguages: (Boolean) -> Unit = {},
     val onDefaultProfile: (String) -> Unit = {},
     val onOverlayMethod: (OverlayMethod) -> Unit = {},
+    val onOfflineDefault: (Boolean) -> Unit = {},
+    val onPreloadOffline: (Boolean) -> Unit = {},
     val onRequest: (Requirement) -> Unit = {},
     val onCheckBackend: () -> Unit = {},
     val onPair: (String) -> Unit = {},
@@ -127,6 +133,8 @@ fun SettingsRoute(
             onStrictLanguages = viewModel::setStrictLanguages,
             onDefaultProfile = viewModel::setDefaultProfile,
             onOverlayMethod = viewModel::setOverlayMethod,
+            onOfflineDefault = viewModel::setOfflineDefault,
+            onPreloadOffline = viewModel::setPreloadOffline,
             onRequest = onRequest,
             onCheckBackend = viewModel::checkBackend,
             onPair = viewModel::pair,
@@ -179,6 +187,7 @@ fun SettingsScreen(
                     when (s) {
                         SettingsSection.LANGUAGES -> LanguagesSection(state.settings, actions)
                         SettingsSection.PROFILE -> ProfileSection(state.settings.defaultProfile, actions.onDefaultProfile)
+                        SettingsSection.OFFLINE -> OfflineSection(state.settings, state.model, actions)
                         SettingsSection.PERMISSIONS -> PermissionsSection(state.permissions, actions.onRequest)
                         SettingsSection.OVERLAY -> OverlaySection(state.settings.overlayMethod, actions.onOverlayMethod)
                         SettingsSection.XIAOMI -> XiaomiSection(onOpen = { actions.onRequest(Requirement.XIAOMI) })
@@ -321,6 +330,40 @@ private fun ProfileSection(defaultProfile: String, onDefaultProfile: (String) ->
                 Modifier.testTag("default_${profile.id}"),
             )
         }
+    }
+}
+
+/** Offline dictation (PLAN_offline-mode.md §4): Soniox stays the default, the switch makes the phone's model the default. */
+@Composable
+private fun OfflineSection(settings: AppSettings, model: ModelStatus, actions: SettingsActions, modifier: Modifier = Modifier) {
+    Section(stringResource(R.string.settings_offline), "section_offline", modifier) {
+        Explanation(stringResource(R.string.settings_offline_explained))
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_offline_default)) },
+            modifier = Modifier
+                .toggleable(value = settings.offlineDefault, role = Role.Switch, onValueChange = actions.onOfflineDefault)
+                .testTag("offline_default"),
+            supportingContent = { Text(stringResource(R.string.settings_offline_default_explained)) },
+            trailingContent = { Switch(checked = settings.offlineDefault, onCheckedChange = null) },
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_preload_offline)) },
+            modifier = Modifier
+                .toggleable(value = settings.preloadOffline, role = Role.Switch, onValueChange = actions.onPreloadOffline)
+                .testTag("preload_offline"),
+            supportingContent = { Text(stringResource(R.string.settings_preload_offline_explained)) },
+            trailingContent = { Switch(checked = settings.preloadOffline, onCheckedChange = null) },
+        )
+        InfoRow(
+            stringResource(R.string.settings_offline_model),
+            if (model.ready) {
+                stringResource(R.string.settings_offline_model_ready, model.bytes / 1_000_000)
+            } else {
+                stringResource(R.string.settings_offline_model_missing)
+            },
+            "offline_model",
+        )
+        Explanation(stringResource(R.string.settings_offline_credits))
     }
 }
 

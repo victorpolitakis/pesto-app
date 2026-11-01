@@ -36,6 +36,8 @@ data class DictationDetail(
     val sttMs: Int?,
     val llmMs: Int?,
     val totalMs: Int?,
+    /** `online` or `offline` (DictationMode.stored). */
+    val mode: String = "online",
 ) {
     /** Words per minute of speech. Null without audio (a broken connection). */
     val wpm: Double? get() = audioS?.takeIf { it > 0 }?.let { words / (it / 60) }

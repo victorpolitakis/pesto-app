@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Offline without a network (PLAN_offline-mode.md §4): only whether there is one. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- The experimental method 2 of the button (Δ12), in the release build too. Asked only with that method. -->
@@ -45,5 +47,11 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <!-- The offline model in a process of its own: under memory pressure it goes, not the accessibility service. -->
+        <service
+            android:name=".local.AsrService"
+            android:exported="false"
+            android:process=":asr" />
     </application>
 </manifest>

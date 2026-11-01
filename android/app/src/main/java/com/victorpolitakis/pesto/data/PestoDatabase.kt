@@ -5,12 +5,13 @@ import androidx.room.RoomDatabase
 
 /**
  * v2 (phase 3): the search index, the Dictionary terms and a profile per app.
+ * v3 (offline mode): the mode of every dictation.
  * The schemas are exported to app/schemas: every version change needs a
  * migration (Migrations.kt) and its test, never a destructive one.
  */
 @Database(
     entities = [DictationEntity::class, DictationFts::class, TermEntity::class, AppProfileEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class PestoDatabase : RoomDatabase() {

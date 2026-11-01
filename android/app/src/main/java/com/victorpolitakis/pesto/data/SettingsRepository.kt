@@ -29,6 +29,10 @@ data class AppSettings(
     val strictLanguages: Boolean = false,
     val defaultProfile: String = ProfilesCatalog.RAW,
     val overlayMethod: OverlayMethod = OverlayMethod.ACCESSIBILITY,
+    /** Every dictation with the model on the phone, also with a network (PLAN_offline-mode.md §4). */
+    val offlineDefault: Boolean = false,
+    /** Experimental: the offline model loads when the button shows (PLAN_offline-mode.md §9). */
+    val preloadOffline: Boolean = false,
 ) {
     /** The `language_hints` of the start message: the primary first, then the second if it differs. */
     val languageHints: List<String> get() = listOfNotNull(primaryLanguage, secondaryLanguage).distinct()
@@ -92,6 +96,10 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setOverlayMethod(method: OverlayMethod) = edit { it[OVERLAY] = method.name }
 
+    suspend fun setOfflineDefault(on: Boolean) = edit { it[OFFLINE_DEFAULT] = on }
+
+    suspend fun setPreloadOffline(on: Boolean) = edit { it[PRELOAD_OFFLINE] = on }
+
     private suspend fun edit(change: (MutablePreferences) -> Unit) {
         store.edit { change(it) }
     }
@@ -108,6 +116,8 @@ class SettingsRepository @Inject constructor(
             strictLanguages = p[STRICT] ?: defaults.strictLanguages,
             defaultProfile = p[DEFAULT_PROFILE] ?: defaults.defaultProfile,
             overlayMethod = OverlayMethod.entries.firstOrNull { it.name == p[OVERLAY] } ?: defaults.overlayMethod,
+            offlineDefault = p[OFFLINE_DEFAULT] ?: defaults.offlineDefault,
+            preloadOffline = p[PRELOAD_OFFLINE] ?: defaults.preloadOffline,
         )
     }
 
@@ -117,6 +127,8 @@ class SettingsRepository @Inject constructor(
         val STRICT = booleanPreferencesKey("strict_languages")
         val DEFAULT_PROFILE = stringPreferencesKey("default_profile")
         val OVERLAY = stringPreferencesKey("overlay_method")
+        val OFFLINE_DEFAULT = booleanPreferencesKey("offline_default")
+        val PRELOAD_OFFLINE = booleanPreferencesKey("preload_offline")
 
         /** Stored for «no second language», which is not the same as «never chosen» (English). */
         const val NONE = ""
