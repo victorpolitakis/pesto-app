@@ -1,0 +1,14 @@
+.gradle/
+build/
+local.properties
+
+# Gboard APKs are never committed (RESEARCH §5); only the patches are shared.
+*.apk
+*.apks
+*.xapk
+*.apkm
+
+# Local signing keys.
+*.keystore
+*.jks
+morphe-signing.key

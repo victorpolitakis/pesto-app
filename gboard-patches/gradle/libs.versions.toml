@@ -1,0 +1,19 @@
+[versions]
+# Morphe patcher, provided at runtime by whatever loads the patches (the on-device KeyboardPatcher
+# in phase 3, or Morphe Desktop/Manager for development). Built into mavenLocal by the bootstrap
+# script. Kept in step with the version the app embeds.
+morphe-patcher = "2.1.0"
+# smali fork used by the patcher, fetched from JitPack by commit.
+smali = "ac700e1942"
+junit = "5.10.1"
+# Matches the version the patcher uses; needed on the test compile classpath to drive the patcher
+# flow in the APK-gated integration test.
+coroutines = "1.10.2"
+
+[libraries]
+# Declared for the patches module's tests; the patches plugin adds the patcher and smali to the
+# patcherProvided configuration automatically from the versions above.
+morphe-patcher = { module = "app.morphe:morphe-patcher", version.ref = "morphe-patcher" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

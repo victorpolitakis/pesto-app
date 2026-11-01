@@ -1,0 +1,13 @@
+# Copy to local.properties (git-ignored) and fill in the real paths. None of this is committed.
+
+# Android SDK, for building the PestoBridge extension.
+sdk.dir=/Users/you/Library/Android/sdk
+
+# Real Gboard APKs for the integration test (RealGboardApkTest). The APKs themselves are never
+# committed; only the patches are shared (RESEARCH §5). Without these, the integration test is
+# skipped and the pure unit tests still run.
+#
+# 18.5.4 is a single arm64 APK.
+#gboard.apk.18_5_4=/Users/you/gboard/Gboard-18.5.4-arm64.apk
+# 18.5.6 beta ships as split APKs; merge them first (the on-device patcher does this on the phone).
+#gboard.apk.18_5_6.merged=/Users/you/gboard/Gboard-18.5.6-merged.apk
