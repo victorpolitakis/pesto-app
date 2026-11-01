@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Offline without a network (PLAN_offline-mode.md §4): only whether there is one. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -47,6 +48,15 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <!-- Dictation for the patched keyboard, "Gboard with Pesto" (PLAN_patch-keyboard-impl.md, phase 2).
+             Exported, because the keyboard is another app; it has no permission, because the keyboard is
+             signed with a local key, not with Pesto's: every message is checked by certificate instead
+             (KeyboardCallerCheck), and anyone else gets no answer. -->
+        <service
+            android:name=".keyboard.PestoDictationService"
+            android:exported="true"
+            tools:ignore="ExportedService" />
 
         <!-- The offline model in a process of its own: under memory pressure it goes, not the accessibility service. -->
         <service

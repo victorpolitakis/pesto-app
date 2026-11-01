@@ -20,10 +20,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Who started a dictation. Today only the button (and the debug test screen).
+ * Who started a dictation: the button, the debug test screen, or the mic key of the patched
+ * keyboard (PestoDictationService).
  * TODO(X6, X10): TILE and GESTURE, which start with field = null (Quick Settings tile with Notes, a gesture).
  */
-enum class Trigger { BUTTON, TEST }
+enum class Trigger { BUTTON, TEST, KEYBOARD }
 
 /** What the overlay shows. */
 sealed interface DictationUi {
@@ -57,8 +58,17 @@ class DictationController @Inject constructor(
 
     val isActive get() = session != null
 
-    /** Starts a dictation for [field] (null = no target field). False if one is already running. */
-    fun start(trigger: Trigger, field: FieldState?): Boolean {
+    /**
+     * Starts a dictation for [field] (null = no target field). False if one is already running.
+     * [audio] and [delivery] replace the microphone and the accessibility insertion for this one
+     * dictation: the patched keyboard records itself and commits the text itself.
+     */
+    fun start(
+        trigger: Trigger,
+        field: FieldState?,
+        audio: AudioCapture? = null,
+        delivery: Delivery? = null,
+    ): Boolean {
         if (session != null) return false
         val context = field?.let(FieldRules::context) ?: FieldContext()
         val startedAt = clock.now()
@@ -66,7 +76,7 @@ class DictationController @Inject constructor(
         // The microphone and the connection do not wait for the start message (C9, Δ5).
         val builder = starts.get()
         val start = scope.async { builder.build(context) }
-        val s = DictationSession(start, audio.get(), backend.get(), scope, log, SystemClock::elapsedRealtime)
+        val s = DictationSession(start, audio ?: this.audio.get(), backend.get(), scope, log, SystemClock::elapsedRealtime)
         session = s
         s.start()
         watcher = scope.launch {
@@ -76,7 +86,7 @@ class DictationController @Inject constructor(
             log.event("end outcome=${outcome.javaClass.simpleName}")
             _ui.value = DictationUi.Ended(outcome)
             // build() never fails, and a dictation with text always had its start sent.
-            delivery.get().deliver(outcome, start.await(), startedAt)
+            (delivery ?: this@DictationController.delivery.get()).deliver(outcome, start.await(), startedAt)
             watcher?.cancel()
         }
         return true
