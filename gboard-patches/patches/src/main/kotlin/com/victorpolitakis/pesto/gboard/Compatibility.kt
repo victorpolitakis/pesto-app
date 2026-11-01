@@ -20,9 +20,6 @@ object Gboard {
     /** The package of the Pesto app, which hosts the dictation service the patch talks to. */
     const val PESTO_PACKAGE_NAME = "com.victorpolitakis.pesto"
 
-    /** The non-obfuscated application class, the earliest place to seed the keyboard's languages. */
-    const val APPLICATION_CLASS = "Lcom/google/android/apps/inputmethod/latin/HiltLatinApp;"
-
     /** The display name the patched keyboard shows in the system keyboard picker and settings. */
     const val DISPLAY_NAME = "Gboard with Pesto"
 

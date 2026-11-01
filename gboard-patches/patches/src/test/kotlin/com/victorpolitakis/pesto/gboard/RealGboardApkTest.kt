@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.io.InputStreamReader
 import java.util.Properties
 
 /**
@@ -44,7 +45,8 @@ class RealGboardApkTest {
     private fun runPatchesAgainst(apkPath: String?, temp: File) {
         assumeTrue(apkPath != null) { "APK path not set in local.properties; skipping" }
         val apk = File(apkPath!!)
-        assumeTrue(apk.isFile) { "configured APK does not exist: $apkPath; skipping" }
+        // A path that is set but not found is a broken setup, not a reason to skip: fail loudly.
+        assertTrue(apk.isFile) { "APK set in local.properties but not found: $apkPath" }
 
         val failures = mutableListOf<String>()
         Patcher(PatcherConfig(apkFile = apk, temporaryFilesPath = temp)).use { patcher ->
@@ -66,8 +68,17 @@ class RealGboardApkTest {
             File("local.properties"),
         )
         val file = candidates.firstOrNull { it.isFile } ?: return null
-        val properties = Properties()
-        file.inputStream().use(properties::load)
-        return properties.getProperty(key)?.takeIf { it.isNotBlank() }
+        return readLocalProperties(file).getProperty(key)?.takeIf { it.isNotBlank() }
+    }
+
+    internal companion object {
+        /**
+         * Reads a `local.properties` as UTF-8, not as `Properties.load(InputStream)`'s ISO-8859-1:
+         * a path with Greek letters would otherwise come out garbled, the file would not be found,
+         * and the test would skip quietly.
+         */
+        fun readLocalProperties(file: File): Properties = Properties().apply {
+            InputStreamReader(file.inputStream(), Charsets.UTF_8).use(::load)
+        }
     }
 }

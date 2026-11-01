@@ -72,13 +72,5 @@ internal object ImeServiceOnCreateFingerprint : Fingerprint(
     parameters = emptyList(),
 )
 
-/**
- * The application class, where languages are seeded as early as possible — in `attachBaseContext`,
- * before Gboard reads its preferences. The class is not obfuscated (RESEARCH §11).
- */
-internal object ApplicationAttachBaseContextFingerprint : Fingerprint(
-    definingClass = Gboard.APPLICATION_CLASS,
-    name = "attachBaseContext",
-    returnType = "V",
-    parameters = listOf("Landroid/content/Context;"),
-)
+// The language seed needs no fingerprint: it reads the application class from the manifest and
+// walks up to the superclass that declares attachBaseContext (see LanguageSeedPatch).
