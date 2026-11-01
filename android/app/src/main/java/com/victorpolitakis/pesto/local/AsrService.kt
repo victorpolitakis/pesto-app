@@ -22,7 +22,7 @@ internal object Asr {
     /** → a piece of the dictation's pcm_s16le, in [KEY_PCM]: the Binder takes ~1 MB at most. */
     const val AUDIO = 2
 
-    /** → recognize the pieces sent so far, then forget them. ← [RESULT] or [FAILED]. */
+    /** → recognize the pieces sent so far, then forget them; arg2: the request id. ← [RESULT] or [FAILED], with the same arg2. */
     const val DECODE = 3
 
     /** ← arg1: ms of the load. */
@@ -109,7 +109,7 @@ class AsrService : Service() {
     }
 
     private fun reply(to: Message, what: Int, arg1: Int, data: Bundle.() -> Unit = {}) {
-        val answer = Message.obtain(null, what, arg1, 0).apply { this.data.data() }
+        val answer = Message.obtain(null, what, arg1, to.arg2).apply { this.data.data() }
         try {
             to.replyTo?.send(answer)
         } catch (_: RemoteException) {

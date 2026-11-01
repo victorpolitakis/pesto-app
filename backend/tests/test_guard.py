@@ -115,3 +115,26 @@ def test_mostly_new_words_are_rejected(profiles):
         "Καλημέρα,\n\nΘα μπορούσες να μου δώσεις μια συνταγή για μπισκότα βουτύρου;"
     )
     assert output_guard(text, rewrite, profiles["mail"]) is None
+
+
+def test_semicolon_is_a_question_only_in_greek_text(profiles):
+    english = "send me the file; I will read it tomorrow morning at the office"
+    rewrite = "Please send me the file. I will read it tomorrow morning at the office."
+    assert output_guard(english, rewrite, profiles["mail"]) is None
+    question = "ποια είναι η πρωτεύουσα της Γαλλίας;"
+    answer = "Η πρωτεύουσα της Γαλλίας είναι το Παρίσι."
+    assert output_guard(question, answer, profiles["professional"]) == "answered"
+    assert (
+        output_guard(question.replace(";", "\u037e"), answer, profiles["professional"])
+        == "answered"
+    )
+
+
+def test_select_from_in_prose_is_not_code(profiles):
+    text = "please select the file from the folder and send it to me tomorrow morning"
+    rewrite = (
+        "Please select the file from the folder and send it to me tomorrow morning."
+    )
+    assert output_guard(text, rewrite, profiles["mail"]) is None
+    sql = "SELECT name, age FROM users WHERE age > 30;"
+    assert output_guard(text, text + "\n" + sql, profiles["mail"]) == "code"

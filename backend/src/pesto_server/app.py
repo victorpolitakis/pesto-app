@@ -108,7 +108,7 @@ def create_app(
         await websocket.accept()
 
         async def emit(message: BaseModel) -> None:
-            await websocket.send_text(message.model_dump_json())
+            await _send(websocket, message)
 
         async def reject(code: str, message: str) -> None:
             await emit(Error(code=code, message=message, retryable=False))
@@ -151,6 +151,12 @@ def create_app(
             await websocket.close()
 
     return app
+
+
+async def _send(websocket: WebSocket, message: BaseModel) -> None:
+    # A client that left must not stop the session before its cleanup.
+    with contextlib.suppress(WebSocketDisconnect, RuntimeError):
+        await websocket.send_text(message.model_dump_json())
 
 
 async def _receive(websocket: WebSocket, inbox: asyncio.Queue, emit) -> None:

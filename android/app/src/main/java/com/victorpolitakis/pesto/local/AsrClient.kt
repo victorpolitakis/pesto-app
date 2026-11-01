@@ -50,17 +50,28 @@ class AsrClient @Inject constructor(
     private var binding: Binding? = null
     private var unbind: Job? = null
 
+    /** prepare() calls not yet matched by a release(): the preload and a dictation can both hold the client. */
+    private var holds = 0
+
     override fun prepare() {
+        holds++
+        connect()
+    }
+
+    private fun connect() {
         unbind?.cancel()
         if (binding == null) binding = Binding().also { it.bind() }
     }
 
     override suspend fun transcribe(pcm: ByteArray): Transcript? {
-        prepare()
+        connect()
         return checkNotNull(binding).transcribe(pcm)
     }
 
     override fun release() {
+        if (holds > 0) holds--
+        // Another holder (a dictation, when the tap hides the button) still needs it.
+        if (holds > 0) return
         unbind?.cancel()
         unbind = scope.launch {
             delay(KEEP_MS)
@@ -73,6 +84,7 @@ class AsrClient @Inject constructor(
         private val service = CompletableDeferred<Messenger?>()
         private var result: CompletableDeferred<Transcript?>? = null
         private var bound = false
+        private var requestId = 0
         private val replies = Messenger(Handler(Looper.getMainLooper(), ::answer))
 
         fun bind() {
@@ -87,6 +99,7 @@ class AsrClient @Inject constructor(
             val messenger = service.await() ?: return null
             val answer = CompletableDeferred<Transcript?>()
             result = answer
+            val id = ++requestId
             try {
                 var from = 0
                 while (from < pcm.size) {
@@ -94,7 +107,7 @@ class AsrClient @Inject constructor(
                     messenger.send(Message.obtain(null, Asr.AUDIO).apply { data.putByteArray(Asr.KEY_PCM, pcm.copyOfRange(from, to)) })
                     from = to
                 }
-                messenger.send(Message.obtain(null, Asr.DECODE).apply { replyTo = replies })
+                messenger.send(Message.obtain(null, Asr.DECODE, 0, id).apply { replyTo = replies })
             } catch (_: RemoteException) {
                 dead("send failed")
             }
@@ -104,6 +117,9 @@ class AsrClient @Inject constructor(
         fun unbind() {
             if (bound) context.unbindService(this)
             bound = false
+            // Nobody will answer any more: a dictation waiting here must not wait for ever.
+            service.complete(null)
+            result?.complete(null)
         }
 
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -125,13 +141,13 @@ class AsrClient @Inject constructor(
 
         private fun dead(why: String) {
             log.event("offline model process: $why")
-            service.complete(null)
-            result?.complete(null)
             unbind()
             if (binding === this) binding = null
         }
 
         private fun answer(msg: Message): Boolean {
+            // The result of a dictation that was cancelled must not complete the next one.
+            if ((msg.what == Asr.RESULT || msg.what == Asr.FAILED) && msg.arg2 != requestId) return true
             when (msg.what) {
                 Asr.LOADED -> log.perf("model_load", msg.arg1.toLong())
                 Asr.WARMED -> log.perf("model_warmup", msg.arg1.toLong())

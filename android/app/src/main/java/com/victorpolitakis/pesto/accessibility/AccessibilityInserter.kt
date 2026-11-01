@@ -55,7 +55,12 @@ class AccessibilityInserter @Inject constructor(
                 if (check != null && check.endsWith(piece)) return InsertMethod.COMMIT_TEXT
                 log.event("insert commitText not verified, falling back")
             }
-            if (setText(node!!, all.substring(0, end), piece, all.substring(end))) return InsertMethod.SET_TEXT
+            // The window is cut at BEFORE/AFTER chars: setText from it would delete the rest of the field.
+            if (windowIsWholeField(around.offset, all.length - end) &&
+                setText(node!!, all.substring(0, end), piece, all.substring(end))
+            ) {
+                return InsertMethod.SET_TEXT
+            }
         } else {
             val current = if (node!!.isShowingHintText) "" else node.text?.toString().orEmpty()
             val end = node.textSelectionEnd.takeIf { it in 0..current.length } ?: current.length
@@ -97,3 +102,8 @@ class AccessibilityInserter @Inject constructor(
         const val VERIFY_DELAY_MS = 60L
     }
 }
+
+/** True when the surrounding-text window starts at the field's start and nothing was cut after it. */
+internal fun windowIsWholeField(offset: Int, charsAfterSelection: Int): Boolean =
+    offset == 0 && charsAfterSelection < 4000
+

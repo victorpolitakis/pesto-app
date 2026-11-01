@@ -40,11 +40,11 @@ object TextJoiner {
      */
     private fun recase(text: String, start: Boolean, terms: Set<String>): String {
         val first = text.first()
-        if (start) return first.uppercaseChar() + text.substring(1)
         val word = text.takeWhile { it.isLetter() }
         val acronym = word.length > 1 && word.all { it.isUpperCase() }
         val innerCapital = word.drop(1).any { it.isUpperCase() }
-        return if (acronym || innerCapital || startsWithTerm(text, terms)) text else first.lowercaseChar() + text.substring(1)
+        if (acronym || innerCapital || startsWithTerm(text, terms)) return text
+        return (if (start) first.uppercaseChar() else first.lowercaseChar()) + text.substring(1)
     }
 
     /** The text starts with a whole term, as it is written in the Dictionary. */

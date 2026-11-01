@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import pytest
@@ -6,7 +7,8 @@ from fakes import FakeLlm, FakeSttFactory
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from pesto_server.app import create_app
+from pesto_server.app import _send, create_app
+from pesto_server.protocol import Error
 from pesto_server.session import SessionLimits
 
 CHUNK = b"\x00\x01" * 1600
@@ -166,3 +168,11 @@ def test_without_an_app_token_only_devices_dictate(settings, device_token):
             ws.send_text('{"type": "start"}')
             assert json.loads(ws.receive_text())["type"] == "ready"
             ws.send_text('{"type": "cancel"}')
+
+
+def test_sending_to_a_client_that_left_does_not_raise():
+    class Gone:
+        async def send_text(self, text):
+            raise RuntimeError('Cannot call "send" once a close message has been sent.')
+
+    asyncio.run(_send(Gone(), Error(code="x", message="y", retryable=False)))

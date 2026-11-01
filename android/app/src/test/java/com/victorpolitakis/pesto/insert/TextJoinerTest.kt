@@ -41,6 +41,13 @@ class TextJoinerTest {
         assertEquals("Πήρα iPhone|", dictate("Πήρα|", "iPhone"))
     }
 
+    @Test fun `at the start of a sentence a word with an inner capital or a term keeps its case`() {
+        assertEquals("iPhone νέο|", dictate("|", "iPhone νέο"))
+        assertEquals("Τέλος. iPhone|", dictate("Τέλος.|", "iPhone"))
+        assertEquals("Τέλος. pesto app|", dictate("Τέλος.|", "pesto app", terms = setOf("pesto")))
+        assertEquals("Τέλος. Καλά|", dictate("Τέλος.|", "καλά"))
+    }
+
     @Test fun `a Dictionary term keeps its capital mid-sentence`() {
         assertEquals("Είπε ο Πολιτάκης|", dictate("Είπε ο|", "Πολιτάκης", terms = setOf("Πολιτάκης")))
         assertEquals("Είπε ο πολιτάκης|", dictate("Είπε ο|", "Πολιτάκης"))
