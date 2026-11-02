@@ -47,7 +47,10 @@ class GboardInstall @Inject constructor(@param:ApplicationContext private val co
         val info = runCatching {
             packageManager.getPackageInfo(pkg, PackageManager.GET_META_DATA)
         }.getOrNull() ?: return null
-        val patchesVersion = info.applicationInfo?.metaData?.getInt(KeyboardPatch.PATCHES_VERSION_META, 0) ?: 0
+        // ARSCLib decides the meta-data value's type when it rebuilds the manifest; read it whether
+        // it comes back an int or a string, so a string "1" is not silently read as 0.
+        val patchesVersion = info.applicationInfo?.metaData
+            ?.get(KeyboardPatch.PATCHES_VERSION_META)?.toString()?.toIntOrNull() ?: 0
         val signedByUs = localCertSha256 != null &&
             packageManager.hasSigningCertificate(pkg, localCertSha256, PackageManager.CERT_INPUT_SHA256)
         return InstalledClone(PackageInfoCompat.getLongVersionCode(info), patchesVersion, signedByUs)

@@ -50,11 +50,12 @@ class LocalSigningKey @Inject constructor(@param:ApplicationContext private val 
         val dir = keyStoreFile.parentFile?.also { it.mkdirs() }
         val temp = File.createTempFile("pesto", ".bks", dir)
         temp.outputStream().use { keyStore.store(it, PASSWORD.toCharArray()) }
-        // Atomic: a reader sees either no file or the whole keystore, never a half-written one.
+        // Atomic: rename replaces any existing file on this platform, so a reader sees either no
+        // file or the whole keystore, never a half-written one. Only the :patcher process makes the
+        // key, so a failed rename is a real filesystem error, not a lost race.
         if (!temp.renameTo(keyStoreFile)) {
             temp.delete()
-            // Another process won the race; its key is the one to use.
-            return loadOrNull() ?: throw IllegalStateException("could not create the signing key")
+            throw IllegalStateException("could not write the signing key")
         }
         return pair
     }
