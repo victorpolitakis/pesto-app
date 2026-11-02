@@ -279,4 +279,31 @@
     <string name="language_fr">Γαλλικά</string>
     <string name="language_es">Ισπανικά</string>
     <string name="language_it">Ιταλικά</string>
+
+    <!-- Settings: Patch Keyboard (Experimental), phase 4. -->
+    <string name="settings_patch_keyboard">Patch πληκτρολογίου (Πειραματικό)</string>
+    <string name="settings_patch_keyboard_explained">Εγκατάσταση ενός αντιγράφου του Gboard που με το πλήκτρο του μικροφώνου υπαγορεύει μέσω Pesto. Πειραματικό.</string>
+    <string name="patch_kbd_no_gboard">Εγκατέστησε πρώτα το Gboard.</string>
+    <string name="patch_kbd_patch">Patch πληκτρολογίου</string>
+    <string name="patch_kbd_update">Ενημέρωση patch</string>
+    <string name="patch_kbd_update_available">Υπάρχει νεότερο patch.</string>
+    <string name="patch_kbd_building">Δημιουργία…</string>
+    <string name="patch_kbd_step_merging">Συγχώνευση…</string>
+    <string name="patch_kbd_step_patching">Εφαρμογή patch…</string>
+    <string name="patch_kbd_step_signing">Υπογραφή…</string>
+    <string name="patch_kbd_install_ready">Το πληκτρολόγιο είναι έτοιμο. Το Android θα ζητήσει να το εγκαταστήσεις.</string>
+    <string name="patch_kbd_install">Εγκατάσταση</string>
+    <string name="patch_kbd_failed">Το patch απέτυχε. Δοκίμασε ξανά.</string>
+    <string name="patch_kbd_dismiss">Παράβλεψη</string>
+    <string name="patch_kbd_enable">Ενεργοποίησε το \"Gboard with Pesto\" στα πληκτρολόγιά σου.</string>
+    <string name="patch_kbd_enable_open">Ρυθμίσεις πληκτρολογίου</string>
+    <string name="patch_kbd_choose">Διάλεξε το \"Gboard with Pesto\" με το πλήκτρο της υδρογείου ή τον επιλογέα πληκτρολογίων.</string>
+    <string name="patch_kbd_choose_open">Επιλογή πληκτρολογίου</string>
+    <string name="patch_kbd_xiaomi">Επίτρεψε το autostart για το \"Gboard with Pesto\".</string>
+    <string name="patch_kbd_xiaomi_open">Ρυθμίσεις autostart</string>
+    <string name="patch_kbd_active">Ενεργό: το πλήκτρο του μικροφώνου υπαγορεύει μέσω Pesto.</string>
+    <string name="patch_kbd_stock_enabled">Το κανονικό Gboard είναι ακόμα ενεργό. Μπορείς να το απενεργοποιήσεις στις ρυθμίσεις πληκτρολογίου.</string>
+    <string name="patch_kbd_revert">Επαναφορά</string>
+    <string name="patch_kbd_revert_explained">Για επαναφορά: ενεργοποίησε και διάλεξε το κανονικό Gboard, μετά αφαίρεσε το \"Gboard with Pesto\".</string>
+    <string name="patch_kbd_unknown_sources">Επίτρεψε στο Pesto να εγκαθιστά εφαρμογές και δοκίμασε ξανά.</string>
 </resources>

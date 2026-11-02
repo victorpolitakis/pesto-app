@@ -15,7 +15,23 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class RequirementChecksTest {
     private var method = OverlayMethod.ACCESSIBILITY
-    private val checks = RequirementChecks(ApplicationProvider.getApplicationContext<Context>(), EditorBridge(), { method })
+    private var keyboardActive = false
+    private val checks = RequirementChecks(
+        ApplicationProvider.getApplicationContext<Context>(),
+        EditorBridge(),
+        { method },
+        { keyboardActive },
+    )
+
+    @Test
+    fun `accessibility is required until the patched keyboard is active`() {
+        assertTrue(Requirement.ACCESSIBILITY in checks.order)
+        keyboardActive = true
+        assertFalse(Requirement.ACCESSIBILITY in checks.order)
+        // The microphone and the pairing stay.
+        assertTrue(Requirement.MICROPHONE in checks.order)
+        assertEquals(Requirement.PAIRING, checks.order.last())
+    }
 
     @Test
     fun `the pairing is asked last, after the permissions`() {

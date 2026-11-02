@@ -18,6 +18,15 @@ import javax.inject.Inject
 enum class Requirement { MICROPHONE, ACCESSIBILITY, BATTERY, XIAOMI, OVERLAY, PAIRING }
 
 /**
+ * Whether the patched keyboard is the active dictation path (phase 4). When it is, dictation goes
+ * through the keyboard, not the accessibility button, so the accessibility requirement is dropped.
+ * Implemented by KeyboardStatus; the default is "not active", for tests and the idle service.
+ */
+fun interface KeyboardActive {
+    fun isActive(): Boolean
+}
+
+/**
  * Pure: which requirement to ask for now. Only the first missing one, never
  * one already asked in this visit (no loop when the user comes back without
  * granting it); a new visit (the user left the app) asks again.
@@ -46,6 +55,7 @@ class RequirementChecks @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val bridge: EditorBridge,
     private val overlayMethod: OverlayMethodProvider,
+    private val keyboardActive: KeyboardActive = KeyboardActive { false },
 ) {
     /**
      * The order of C3. The overlay permission only with the experimental method 2
@@ -53,9 +63,14 @@ class RequirementChecks @Inject constructor(
      */
     val order: List<Requirement> get() = order(overlayMethod.current())
 
-    /** The order with [method]: Settings show the list of the method just chosen. */
+    /**
+     * The order with [method]: Settings show the list of the method just chosen. When the patched
+     * keyboard is active, dictation goes through it, so the accessibility requirement is dropped.
+     */
     fun order(method: OverlayMethod): List<Requirement> =
-        listOf(Requirement.MICROPHONE, Requirement.ACCESSIBILITY, Requirement.BATTERY) +
+        listOf(Requirement.MICROPHONE) +
+            (if (keyboardActive.isActive()) emptyList() else listOf(Requirement.ACCESSIBILITY)) +
+            Requirement.BATTERY +
             (if (isXiaomi) listOf(Requirement.XIAOMI) else emptyList()) +
             (if (method == OverlayMethod.APPLICATION) listOf(Requirement.OVERLAY) else emptyList()) +
             Requirement.PAIRING

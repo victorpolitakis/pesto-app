@@ -118,12 +118,23 @@ fun SettingsRoute(
     onRequest: (Requirement) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
+    patchViewModel: PatchKeyboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val patchKeyboard by patchViewModel.state.collectAsStateWithLifecycle()
+    val patchActions = rememberPatchKeyboardActions(
+        onBuild = patchViewModel::build,
+        onInstallFinished = patchViewModel::onInstallFinished,
+        onXiaomiAutostartShown = patchViewModel::markXiaomiAutostartShown,
+        onClearError = patchViewModel::clearError,
+    )
     // The code of the pairing stays on the screen only, never in a log.
     var code by rememberSaveable { mutableStateOf("") }
     // Back from a page of Android: what it granted meanwhile, and the backend again.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refresh()
+        patchViewModel.refresh()
+    }
     LaunchedEffect(state.paired) { if (state.paired) code = "" }
     // The ViewModel is the same for the whole route, so only onRequest is a key.
     val actions = remember(onRequest) {
@@ -152,6 +163,8 @@ fun SettingsRoute(
         actions = actions,
         onBack = onBack,
         modifier = modifier,
+        patchKeyboard = patchKeyboard,
+        patchActions = patchActions,
     )
 }
 
@@ -172,6 +185,8 @@ fun SettingsScreen(
     actions: SettingsActions,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    patchKeyboard: PatchKeyboardState = PatchKeyboardState(),
+    patchActions: PatchKeyboardActions = PatchKeyboardActions(),
 ) {
     // The Xiaomi section only on Xiaomi devices (Δ13).
     val sections = SettingsSection.entries.filter { it != SettingsSection.XIAOMI || state.isXiaomi }
@@ -191,6 +206,7 @@ fun SettingsScreen(
                         SettingsSection.PERMISSIONS -> PermissionsSection(state.permissions, actions.onRequest)
                         SettingsSection.OVERLAY -> OverlaySection(state.settings.overlayMethod, actions.onOverlayMethod)
                         SettingsSection.XIAOMI -> XiaomiSection(onOpen = { actions.onRequest(Requirement.XIAOMI) })
+                        SettingsSection.PATCH_KEYBOARD -> PatchKeyboardSection(patchKeyboard, patchActions)
                         SettingsSection.BACKEND -> BackendSection(state, code, onCodeChange, actions)
                         SettingsSection.PRIVACY -> PrivacySection(state.dictations, actions.onAskDeleteAll)
                         SettingsSection.ABOUT -> AboutSection(state.version, state.buildType)
@@ -203,7 +219,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun Section(title: String, tag: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+internal fun Section(title: String, tag: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(modifier.fillMaxWidth().padding(vertical = 8.dp).testTag(tag)) {
         Text(
             title,
@@ -216,7 +232,7 @@ private fun Section(title: String, tag: String, modifier: Modifier = Modifier, c
 }
 
 @Composable
-private fun Explanation(text: String, modifier: Modifier = Modifier) {
+internal fun Explanation(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,

@@ -279,4 +279,31 @@
     <string name="language_fr">French</string>
     <string name="language_es">Spanish</string>
     <string name="language_it">Italian</string>
+
+    <!-- Settings: Patch Keyboard (Experimental), phase 4. -->
+    <string name="settings_patch_keyboard">Patch Keyboard (Experimental)</string>
+    <string name="settings_patch_keyboard_explained">Install a copy of Gboard whose microphone key dictates with Pesto. Experimental.</string>
+    <string name="patch_kbd_no_gboard">Install Gboard first.</string>
+    <string name="patch_kbd_patch">Patch keyboard</string>
+    <string name="patch_kbd_update">Update patch</string>
+    <string name="patch_kbd_update_available">A newer patch is available.</string>
+    <string name="patch_kbd_building">Building…</string>
+    <string name="patch_kbd_step_merging">Merging…</string>
+    <string name="patch_kbd_step_patching">Patching…</string>
+    <string name="patch_kbd_step_signing">Signing…</string>
+    <string name="patch_kbd_install_ready">The keyboard is built. Android will ask you to install it.</string>
+    <string name="patch_kbd_install">Install</string>
+    <string name="patch_kbd_failed">Patching failed. Try again.</string>
+    <string name="patch_kbd_dismiss">Dismiss</string>
+    <string name="patch_kbd_enable">Enable \"Gboard with Pesto\" in your keyboards.</string>
+    <string name="patch_kbd_enable_open">Keyboard settings</string>
+    <string name="patch_kbd_choose">Choose \"Gboard with Pesto\" with the globe key or the keyboard picker.</string>
+    <string name="patch_kbd_choose_open">Choose keyboard</string>
+    <string name="patch_kbd_xiaomi">Allow autostart for \"Gboard with Pesto\".</string>
+    <string name="patch_kbd_xiaomi_open">Autostart settings</string>
+    <string name="patch_kbd_active">Active: the microphone key dictates with Pesto.</string>
+    <string name="patch_kbd_stock_enabled">The normal Gboard is still on. You can turn it off in keyboard settings.</string>
+    <string name="patch_kbd_revert">Revert</string>
+    <string name="patch_kbd_revert_explained">To revert: enable and choose the normal Gboard, then remove \"Gboard with Pesto\".</string>
+    <string name="patch_kbd_unknown_sources">Allow Pesto to install apps, then try again.</string>
 </resources>

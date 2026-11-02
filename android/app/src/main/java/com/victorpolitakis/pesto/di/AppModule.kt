@@ -30,6 +30,7 @@ import com.victorpolitakis.pesto.data.TermDao
 import com.victorpolitakis.pesto.dictation.Delivery
 import com.victorpolitakis.pesto.dictation.OutcomeDelivery
 import com.victorpolitakis.pesto.insert.Inserter
+import com.victorpolitakis.pesto.keyboard.KeyboardStatus
 import com.victorpolitakis.pesto.keyboard.TrustedLocalKeyboard
 import com.victorpolitakis.pesto.keyboard.PackageManagerCertificates
 import com.victorpolitakis.pesto.keyboard.SigningCertificates
@@ -43,6 +44,7 @@ import com.victorpolitakis.pesto.local.NetworkCheck
 import com.victorpolitakis.pesto.local.RoutingBackendClient
 import com.victorpolitakis.pesto.local.Transcriber
 import com.victorpolitakis.pesto.overlay.OverlayMethodProvider
+import com.victorpolitakis.pesto.permissions.KeyboardActive
 import com.victorpolitakis.pesto.util.AndroidLog
 import com.victorpolitakis.pesto.util.PestoLog
 import com.victorpolitakis.pesto.util.WallClock
@@ -94,6 +96,9 @@ abstract class AppModule {
     @Binds abstract fun trustedKeyboards(impl: TrustedLocalKeyboard): TrustedKeyboards
 
     @Binds abstract fun signingCertificates(impl: PackageManagerCertificates): SigningCertificates
+
+    // The patched keyboard being the active dictation path (drops the accessibility requirement).
+    @Binds abstract fun keyboardActive(impl: KeyboardStatus): KeyboardActive
 
     companion object {
         @Provides @Singleton @AppScope
