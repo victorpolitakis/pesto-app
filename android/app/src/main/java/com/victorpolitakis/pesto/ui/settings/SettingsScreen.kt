@@ -126,6 +126,7 @@ fun SettingsRoute(
         onBuild = patchViewModel::build,
         onInstallResult = patchViewModel::onInstallResult,
         onRemoved = patchViewModel::onRemoved,
+        onBeforeReinstall = patchViewModel::saveCloneLanguages,
         onStartRevert = patchViewModel::startRevert,
         onCancelRevert = patchViewModel::cancelRevert,
         onXiaomiAutostartShown = patchViewModel::markKeyboardAutostartShown,

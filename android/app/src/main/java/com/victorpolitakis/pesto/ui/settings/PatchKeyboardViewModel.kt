@@ -125,6 +125,19 @@ class PatchKeyboardViewModel @Inject constructor(
 
     fun clearError() = keyboardBuild.clearError()
 
+    /**
+     * Before a reinstall removes the foreign-key clone, remember its languages, since after the
+     * uninstall they are gone and [build] (which runs on the uninstall result) could not read them.
+     * The write finishes long before the user confirms the uninstall, so build sees it.
+     */
+    fun saveCloneLanguages() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                gboard.languagesFileFor(KeyboardPatch.PATCHED_PACKAGE)?.let { prefs.setLastKeyboardLanguages(it) }
+            }
+        }
+    }
+
     fun startRevert() {
         reverting.value = true
         refresh()

@@ -39,6 +39,7 @@ fun rememberPatchKeyboardActions(
     onBuild: () -> Unit,
     onInstallResult: (Int, String?) -> Unit,
     onRemoved: () -> Unit,
+    onBeforeReinstall: () -> Unit,
     onStartRevert: () -> Unit,
     onCancelRevert: () -> Unit,
     onXiaomiAutostartShown: () -> Unit,
@@ -91,7 +92,7 @@ fun rememberPatchKeyboardActions(
         }
     }
 
-    return remember(onBuild, onInstallResult, onRemoved, onStartRevert, onCancelRevert, onXiaomiAutostartShown, onClearError) {
+    return remember(onBuild, onInstallResult, onRemoved, onBeforeReinstall, onStartRevert, onCancelRevert, onXiaomiAutostartShown, onClearError) {
         PatchKeyboardActions(
             onBuild = onBuild,
             onInstall = { apk ->
@@ -104,7 +105,12 @@ fun rememberPatchKeyboardActions(
                     )
                 }
             },
-            onReinstall = { installer.uninstall(sender(context, OP_REINSTALL)) },
+            onReinstall = {
+                // Remember the clone's languages before it is removed; build() runs on the uninstall
+                // result, when they would be gone.
+                onBeforeReinstall()
+                installer.uninstall(sender(context, OP_REINSTALL))
+            },
             onEnableKeyboard = { runCatching { context.startActivity(installer.inputSettings()) } },
             onChooseKeyboard = { context.getSystemService(InputMethodManager::class.java)?.showInputMethodPicker() },
             onXiaomiAutostart = {
