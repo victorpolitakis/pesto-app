@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.view.inputmethod.InputMethodInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.core.content.pm.PackageInfoCompat
+import com.victorpolitakis.pesto.util.PestoLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -18,7 +19,10 @@ data class ApkFiles(val base: String, val splits: List<String>) {
  * the version codes, and the stock keyboard's enabled languages (read before the user disables it,
  * spike S2). Device-only; its pure parts are in KeyboardLocales and PatchPlan.
  */
-class GboardInstall @Inject constructor(@param:ApplicationContext private val context: Context) {
+class GboardInstall @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+    private val log: PestoLog,
+) {
     private val packageManager get() = context.packageManager
 
     /** The APK files of [packageName], or null if it is not installed. */
@@ -48,9 +52,12 @@ class GboardInstall @Inject constructor(@param:ApplicationContext private val co
             packageManager.getPackageInfo(pkg, PackageManager.GET_META_DATA)
         }.getOrNull() ?: return null
         // ARSCLib decides the meta-data value's type when it rebuilds the manifest; read it whether
-        // it comes back an int or a string, so a string "1" is not silently read as 0.
-        val patchesVersion = info.applicationInfo?.metaData
-            ?.get(KeyboardPatch.PATCHES_VERSION_META)?.toString()?.toIntOrNull() ?: 0
+        // it comes back an int or a string. getInt writes a warning to logcat and returns the
+        // default on a type mismatch, so fall back to the string form.
+        val meta = info.applicationInfo?.metaData
+        val patchesVersion = meta?.getInt(KeyboardPatch.PATCHES_VERSION_META, 0)?.takeIf { it != 0 }
+            ?: meta?.getString(KeyboardPatch.PATCHES_VERSION_META)?.toIntOrNull()
+            ?: 0
         val signedByUs = localCertSha256 != null &&
             packageManager.hasSigningCertificate(pkg, localCertSha256, PackageManager.CERT_INPUT_SHA256)
         return InstalledClone(PackageInfoCompat.getLongVersionCode(info), patchesVersion, signedByUs)
@@ -75,15 +82,20 @@ class GboardInstall @Inject constructor(@param:ApplicationContext private val co
         return KeyboardLocales.fileContents(locales)
     }
 
-    private fun InputMethodManager.enabledSubtypesOf(ime: InputMethodInfo, allowImplicit: Boolean): List<KeyboardLocales.Locale> =
-        getEnabledInputMethodSubtypeList(ime, allowImplicit)
+    private fun InputMethodManager.enabledSubtypesOf(ime: InputMethodInfo, allowImplicit: Boolean): List<KeyboardLocales.Locale> {
+        val keyboardSubtypes = getEnabledInputMethodSubtypeList(ime, allowImplicit)
             .filter { it.mode == "keyboard" || it.mode.isEmpty() }
-            .mapNotNull { subtype ->
-                val tag = subtype.languageTag.ifEmpty { subtype.locale }.ifEmpty { return@mapNotNull null }
-                // The subtype's PkLayoutType, when present (English); empty for Greek (S2).
-                val layout = subtype.extraValueOrNull("PkLayoutType")?.ifEmpty { null }
-                KeyboardLocales.Locale(tag, layout)
-            }
+        val locales = keyboardSubtypes.mapNotNull { subtype ->
+            // languageTag only; the old `locale` field is deprecated. A subtype with no tag is skipped.
+            val tag = subtype.languageTag.ifEmpty { return@mapNotNull null }
+            // The subtype's PkLayoutType, when present (English); empty for Greek (S2).
+            val layout = subtype.extraValueOrNull("PkLayoutType")?.ifEmpty { null }
+            KeyboardLocales.Locale(tag, layout)
+        }
+        val skipped = keyboardSubtypes.size - locales.size
+        if (skipped > 0) log.event("keyboard languages: skipped $skipped subtype(s) with no language tag")
+        return locales
+    }
 }
 
 /** Reads a named value out of an InputMethodSubtype's extra value (`k=v,k2=v2`). */
