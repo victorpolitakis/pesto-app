@@ -16,9 +16,10 @@ import java.io.File
 import javax.inject.Inject
 
 /**
- * Builds the patched keyboard in a process of its own (`android:process=":patcher"`, large heap):
- * merging and patching a ~100 MB APK needs a lot of memory, and when it is done the process ends
- * and gives the memory back, so Pesto itself never carries it (like `:asr` for the model).
+ * Builds the patched keyboard in a process of its own (`android:process=":patcher"`): merging and
+ * patching a ~100 MB APK needs a lot of memory, and when it is done the process ends and gives the
+ * memory back, so Pesto itself never carries it (like `:asr` for the model). The large heap is set
+ * on the application, so every process gets it, this one included.
  *
  * Settings (phase 4) binds it, sends [MSG_BUILD] with the languages file, and gets [MSG_STEP]
  * progress and then [MSG_DONE] with the signed APK path or [MSG_FAILED]. The build runs on a

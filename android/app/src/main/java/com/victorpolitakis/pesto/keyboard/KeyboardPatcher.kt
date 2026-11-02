@@ -40,6 +40,9 @@ class KeyboardPatcher @Inject constructor(
      * @param onStep progress, on the calling thread
      * @return the signed APK, ready for PackageInstaller
      */
+    // usableSpace is enough for a pre-flight check; the heavier StorageManager#getAllocatableBytes
+    // (which would also clear caches) is not worth it for a one-off guard.
+    @Suppress("UsableSpace")
     suspend fun buildPatchedApk(
         workDir: File,
         languagesFile: String?,
@@ -48,6 +51,16 @@ class KeyboardPatcher @Inject constructor(
         val apks = gboard.apkFiles(KeyboardPatch.GBOARD_PACKAGE)
             ?: throw KeyboardPatchException(PatchStep.MERGING, "stock Gboard is not installed")
         workDir.mkdirs()
+
+        // Merging, patching and signing hold a few copies of a ~100 MB APK at once; fail early and
+        // clearly when the disk cannot hold them, rather than part way through.
+        val need = apks.all.sumOf { File(it).length() } * 4
+        if (workDir.usableSpace < need) {
+            throw KeyboardPatchException(
+                PatchStep.MERGING,
+                "not enough free space: need about ${need / 1_000_000} MB",
+            )
+        }
 
         // 1. One APK out of the base and its splits (the 18.5.6 build ships splits).
         onStep(PatchStep.MERGING)
@@ -67,6 +80,8 @@ class KeyboardPatcher @Inject constructor(
         val patched = File(workDir, "patched.apk")
         try {
             runPatches(merged, patched, workDir, languagesFile)
+        } catch (e: KeyboardPatchException) {
+            throw e
         } catch (e: Exception) {
             throw KeyboardPatchException(PatchStep.PATCHING, "patching failed", e)
         }
@@ -80,6 +95,11 @@ class KeyboardPatcher @Inject constructor(
             throw KeyboardPatchException(PatchStep.SIGNING, "signing failed", e)
         }
 
+        // The intermediates are hundreds of MB; keep only the signed APK. The caller deletes that
+        // once the install is done (phase 4).
+        listOf(merged, patched, File(workDir, "splits"), File(workDir, "patcher"), File(workDir, "patches.mpp"))
+            .forEach { it.deleteRecursively() }
+
         onStep(PatchStep.DONE)
         return signed
     }
@@ -89,11 +109,15 @@ class KeyboardPatcher @Inject constructor(
         context.assets.open(KeyboardPatch.PATCHES_ASSET).use { asset ->
             bundle.outputStream().use(asset::copyTo)
         }
+        // Android 14+ refuses to load a dex that is still writable ("Writable dex file"), and
+        // PatchLoader.Dex hands the file straight to DexClassLoader, so make it read-only first.
+        check(bundle.setReadOnly()) { "could not make the patches bundle read-only" }
+
         val patches: Set<Patch<*>> = loadPatchesFromDex(setOf(bundle), optimizedDexDirectory = workDir)
-        languagesFile?.let { contents ->
-            patches.firstOrNull { it.name == "Seed keyboard languages" }
-                ?.options?.set(KeyboardPatch.PESTO_LOCALES_OPTION, contents)
-        }
+        // Always set the languages option, even empty, so the patch's example default is never used.
+        val seed = patches.firstOrNull { it.name == KeyboardPatch.SEED_PATCH_NAME }
+            ?: throw KeyboardPatchException(PatchStep.PATCHING, "the patches bundle has no '${KeyboardPatch.SEED_PATCH_NAME}'")
+        seed.options[KeyboardPatch.PESTO_LOCALES_OPTION] = languagesFile.orEmpty()
 
         // The patcher works in its own temporary tree; STRIP_FAST is the default.
         input.copyTo(output, overwrite = true)

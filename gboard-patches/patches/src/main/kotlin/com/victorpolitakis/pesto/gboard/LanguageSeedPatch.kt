@@ -41,11 +41,14 @@ internal val pestoLocalesOption = stringOption(
     required = true,
 )
 
-/** Adds [PESTO_LOCALES_ASSET] to the patched APK, with the value of [pestoLocalesOption]. */
+/**
+ * Adds [PESTO_LOCALES_ASSET] to the patched APK, with the value of [pestoLocalesOption]. A blank
+ * value adds no asset: then the keyboard seeds nothing and starts with English (the on-device
+ * patcher sends a blank value when the stock keyboard has no languages to copy).
+ */
 private val pestoLocalesAssetPatch = resourcePatch {
     execute {
-        val contents = pestoLocalesOption.value
-            ?: throw PatchException("the pestoLocales option is not set")
+        val contents = pestoLocalesOption.value?.takeIf { it.isNotBlank() } ?: return@execute
         get(PESTO_LOCALES_ASSET, false).apply {
             parentFile?.mkdirs()
             writeText(contents)

@@ -41,9 +41,23 @@ val manifestPatch = resourcePatch(
                 queries.appendChild(pkg)
             }
 
-            // Application label.
-            (manifest.getElementsByTagName("application").item(0) as? Element)
-                ?.setAttributeNS(ANDROID_NS, "android:label", Gboard.DISPLAY_NAME)
+            // Application label, and the patch-set version so the app knows when to rebuild the
+            // clone after the patches change but Gboard has not (PatchPlan).
+            (manifest.getElementsByTagName("application").item(0) as? Element)?.let { application ->
+                application.setAttributeNS(ANDROID_NS, "android:label", Gboard.DISPLAY_NAME)
+
+                val existing = (0 until application.childNodes.length)
+                    .mapNotNull { application.childNodes.item(it) as? Element }
+                    .firstOrNull {
+                        it.tagName == "meta-data" &&
+                            it.getAttributeNS(ANDROID_NS, "name") == Gboard.PATCHES_VERSION_META
+                    }
+                val meta = existing ?: manifest.createElement("meta-data").also {
+                    it.setAttributeNS(ANDROID_NS, "android:name", Gboard.PATCHES_VERSION_META)
+                    application.appendChild(it)
+                }
+                meta.setAttributeNS(ANDROID_NS, "android:value", Gboard.PATCHES_VERSION.toString())
+            }
 
             // Ensure RECORD_AUDIO is declared.
             val usesPermissions = manifest.getElementsByTagName("uses-permission")

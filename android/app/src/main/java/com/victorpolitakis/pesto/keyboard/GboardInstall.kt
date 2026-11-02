@@ -37,9 +37,25 @@ class GboardInstall @Inject constructor(@param:ApplicationContext private val co
         return PackageInfoCompat.getLongVersionCode(info)
     }
 
-    /** What to do for the stock Gboard: patch, update or nothing. */
-    fun planFor(stockVersionCode: Long): PatchAction =
-        PatchPlan.decide(stockVersionCode, versionCode(KeyboardPatch.PATCHED_PACKAGE))
+    /**
+     * The installed patched clone, or null if none. [localCertSha256] is this install's signing
+     * certificate digest ([LocalSigningKey.certificateSha256Bytes]); when it is null there is no
+     * local key yet, so no clone can be ours.
+     */
+    fun installedClone(localCertSha256: ByteArray?): InstalledClone? {
+        val pkg = KeyboardPatch.PATCHED_PACKAGE
+        val info = runCatching {
+            packageManager.getPackageInfo(pkg, PackageManager.GET_META_DATA)
+        }.getOrNull() ?: return null
+        val patchesVersion = info.applicationInfo?.metaData?.getInt(KeyboardPatch.PATCHES_VERSION_META, 0) ?: 0
+        val signedByUs = localCertSha256 != null &&
+            packageManager.hasSigningCertificate(pkg, localCertSha256, PackageManager.CERT_INPUT_SHA256)
+        return InstalledClone(PackageInfoCompat.getLongVersionCode(info), patchesVersion, signedByUs)
+    }
+
+    /** What to do for the stock Gboard: patch, update, reinstall or nothing. */
+    fun planFor(stockVersionCode: Long, localCertSha256: ByteArray?): PatchAction =
+        PatchPlan.decide(stockVersionCode, installedClone(localCertSha256))
 
     /**
      * The stock Gboard's enabled languages, as the pesto_locales.txt the seed patch bundles. Read

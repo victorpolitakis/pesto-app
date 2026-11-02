@@ -19,13 +19,6 @@ val localProperties = Properties().apply {
 }
 val backendUrl = localProperties.getProperty("pesto.backendUrl", "ws://127.0.0.1:8000/v1/dictate")
 
-// The SHA-256 of the certificate the patched keyboard ("Gboard with Pesto") is signed with, as
-// `apksigner verify --print-certs` prints it; several are separated by commas. Only an app signed
-// with it may dictate through PestoDictationService. Empty by default: then no keyboard may.
-// TODO(phase 3): the on-device patcher's local key adds its own certificate at run time.
-val trustedKeyboardSha256 = localProperties.getProperty("pesto.trustedKeyboardSha256", "")
-    .also { require(Regex("[0-9A-Fa-f:, ]*").matches(it)) { "pesto.trustedKeyboardSha256: hex digests only" } }
-
 // sherpa-onnx (Apache-2.0), the runtime of the offline model, is not on Maven: the AAR of its
 // GitHub release, checked by sha256, into app/libs (not in git). Once per checkout, CI too.
 val sherpaVersion = "2.0.1"
@@ -89,7 +82,6 @@ android {
         versionName = "0.3.0"
 
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
-        buildConfigField("String", "TRUSTED_KEYBOARD_SHA256", "\"$trustedKeyboardSha256\"")
 
         // The offline model runs only on arm64 phones; the emulator dictation_api36 is arm64 too.
         ndk { abiFilters += "arm64-v8a" }

@@ -24,6 +24,16 @@ object Gboard {
     const val DISPLAY_NAME = "Gboard with Pesto"
 
     /**
+     * The version of this patch set, written into the clone as a manifest meta-data by [manifestPatch]
+     * and read back by the app to know when to rebuild after the patches change but Gboard has not
+     * (app: KeyboardPatch.PATCHES_VERSION — bump both together).
+     */
+    const val PATCHES_VERSION = 1
+
+    /** The meta-data name under which [PATCHES_VERSION] is written in the clone's manifest. */
+    const val PATCHES_VERSION_META = "pesto.patchesVersion"
+
+    /**
      * The two Gboard builds the spikes were developed against (RESEARCH §7, §11). Declared for
      * documentation and for Morphe Manager; the patches match by fingerprint, not by version, so
      * they are expected to keep working across nearby builds.
