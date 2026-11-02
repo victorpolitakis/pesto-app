@@ -24,15 +24,24 @@ import javax.inject.Singleton
 class LocalSigningKey @Inject constructor(@param:ApplicationContext private val context: Context) {
     private val keyStoreFile: File get() = File(context.filesDir, "keyboard-signing/pesto.bks")
 
+    // The certificate never changes once the key is made, and isActive() (called from the permission
+    // order) asks for it often, so the digest is cached to avoid re-reading the BKS each time.
+    @Volatile private var cachedDigest: ByteArray? = null
+
     /** The signer for the patched keyboard, making the key on first use. */
     @Synchronized
     fun signer(): ApkSigner.Signer = ApkSigner.newApkSigner(ALIAS, loadOrCreate())
 
     /** The SHA-256 of the signing certificate as lowercase hex, or null if the key does not exist yet. */
-    fun certificateSha256OrNull(): String? = loadOrNull()?.let { sha256Hex(it.certificate) }
+    fun certificateSha256OrNull(): String? = certificateSha256Bytes()?.joinToString("") { "%02x".format(it) }
 
-    /** The same digest as raw bytes, or null if the key does not exist yet. */
-    fun certificateSha256Bytes(): ByteArray? = loadOrNull()?.let { digestOf(it.certificate) }
+    /** The same digest as raw bytes, or null if the key does not exist yet. Cached once the key exists. */
+    fun certificateSha256Bytes(): ByteArray? {
+        cachedDigest?.let { return it }
+        val digest = loadOrNull()?.let { digestOf(it.certificate) } ?: return null
+        cachedDigest = digest
+        return digest
+    }
 
     private fun loadOrNull(): ApkSigner.PrivateKeyCertificatePair? {
         val file = keyStoreFile
@@ -57,14 +66,12 @@ class LocalSigningKey @Inject constructor(@param:ApplicationContext private val 
             temp.delete()
             throw IllegalStateException("could not write the signing key")
         }
+        cachedDigest = digestOf(pair.certificate)
         return pair
     }
 
     private fun digestOf(certificate: X509Certificate): ByteArray =
         MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
-
-    private fun sha256Hex(certificate: X509Certificate): String =
-        digestOf(certificate).joinToString("") { "%02x".format(it) }
 
     private companion object {
         const val ALIAS = "pesto-keyboard"

@@ -58,7 +58,15 @@ fun PatchKeyboardSection(state: PatchKeyboardState, actions: PatchKeyboardAction
             return@Section
         }
         if (state.reverting) {
-            RevertFlow(state.revertStep, actions)
+            // Put the normal Gboard back, then remove the clone.
+            StockBackSteps(state.revertStep, "patch_kbd_revert", actions) {
+                Step(stringResource(R.string.patch_kbd_revert_remove))
+                Action("patch_kbd_remove", R.string.patch_kbd_revert_remove_open, actions.onRemove)
+            }
+            TextButton(
+                onClick = actions.onCancelRevert,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("patch_kbd_cancel_revert"),
+            ) { Text(stringResource(R.string.patch_kbd_cancel)) }
             return@Section
         }
         when (val build = state.build) {
@@ -84,8 +92,12 @@ fun PatchKeyboardSection(state: PatchKeyboardState, actions: PatchKeyboardAction
                 Action("patch_kbd_patch", R.string.patch_kbd_patch, actions.onBuild)
 
             KeyboardStage.NEEDS_REINSTALL -> {
-                Step(stringResource(R.string.patch_kbd_reinstall))
-                Action("patch_kbd_reinstall", R.string.patch_kbd_reinstall_open, actions.onReinstall)
+                // A clone with another key: put the normal Gboard back first (so the phone keeps a
+                // keyboard), and only then remove it and patch again.
+                Explanation(stringResource(R.string.patch_kbd_reinstall))
+                StockBackSteps(state.revertStep, "patch_kbd_reinstall", actions) {
+                    Action("patch_kbd_reinstall", R.string.patch_kbd_reinstall_open, actions.onReinstall)
+                }
             }
 
             KeyboardStage.INSTALLED_NOT_ENABLED -> {
@@ -120,25 +132,30 @@ fun PatchKeyboardSection(state: PatchKeyboardState, actions: PatchKeyboardAction
     }
 }
 
+/**
+ * The shared steps that put the normal Gboard back before the clone is touched: enable it, then
+ * choose it. At [RevertStep.REMOVE] the caller's [remove] slot renders the final button (remove for
+ * revert, reinstall for a foreign-key clone). While the device state is still being read ([step] is
+ * null) no button shows, so a quick tap cannot remove the clone before the check.
+ */
 @Composable
-private fun RevertFlow(step: RevertStep?, actions: PatchKeyboardActions) {
+private fun StockBackSteps(
+    step: RevertStep?,
+    prefix: String,
+    actions: PatchKeyboardActions,
+    remove: @Composable () -> Unit,
+) {
     when (step) {
         RevertStep.ENABLE_STOCK -> {
             Step(stringResource(R.string.patch_kbd_revert_enable_stock))
-            Action("patch_kbd_revert_enable", R.string.patch_kbd_enable_open, actions.onEnableKeyboard)
+            Action("${prefix}_enable", R.string.patch_kbd_enable_open, actions.onEnableKeyboard)
         }
         RevertStep.CHOOSE_STOCK -> {
             Step(stringResource(R.string.patch_kbd_revert_choose_stock))
-            Action("patch_kbd_revert_choose", R.string.patch_kbd_choose_open, actions.onChooseKeyboard)
+            Action("${prefix}_choose", R.string.patch_kbd_choose_open, actions.onChooseKeyboard)
         }
-        // Null while the device state is being read; show the last step's intent (remove).
-        RevertStep.REMOVE, null -> {
-            Step(stringResource(R.string.patch_kbd_revert_remove))
-            Action("patch_kbd_remove", R.string.patch_kbd_revert_remove_open, actions.onRemove)
-        }
-    }
-    TextButton(onClick = actions.onCancelRevert, modifier = Modifier.padding(horizontal = 16.dp).testTag("patch_kbd_cancel_revert")) {
-        Text(stringResource(R.string.patch_kbd_cancel))
+        RevertStep.REMOVE -> remove()
+        null -> Unit
     }
 }
 

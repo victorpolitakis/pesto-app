@@ -78,7 +78,8 @@ class PatchKeyboardViewModel @Inject constructor(
                 isXiaomi = snap.isXiaomi,
                 build = build,
                 reverting = rev,
-                revertStep = if (rev) snap.revertStep else null,
+                // Exposed always: the NEEDS_REINSTALL step uses it too, not only the revert flow.
+                revertStep = snap.revertStep,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PatchKeyboardState())
 
@@ -104,11 +105,13 @@ class PatchKeyboardViewModel @Inject constructor(
     fun build() {
         viewModelScope.launch {
             val languages = withContext(Dispatchers.IO) {
-                // Prefer the stock keyboard's current languages; remember them for later builds.
-                val stock = gboard.stockLanguagesFile()
-                if (stock != null) prefs.setLastKeyboardLanguages(stock)
-                // When the stock keyboard is already off, reuse the last ones (fix 7).
-                stock ?: prefs.lastKeyboardLanguages()
+                // The clone's own languages first (freshest for an update or a reinstall), then the
+                // stock keyboard's; remember whichever was read. When both are off (e.g. a reinstall
+                // right after Pesto's data was cleared), reuse the last ones.
+                val read = gboard.languagesFileFor(KeyboardPatch.PATCHED_PACKAGE)
+                    ?: gboard.languagesFileFor(KeyboardPatch.GBOARD_PACKAGE)
+                if (read != null) prefs.setLastKeyboardLanguages(read)
+                read ?: prefs.lastKeyboardLanguages()
             }
             keyboardBuild.build(languages)
         }

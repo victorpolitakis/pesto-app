@@ -68,18 +68,18 @@ class GboardInstall @Inject constructor(
         PatchPlan.decide(stockVersionCode, installedClone(localCertSha256))
 
     /**
-     * The stock Gboard's enabled languages, as the pesto_locales.txt the seed patch bundles. Read
-     * from the stock keyboard's own enabled subtypes; null when the stock keyboard is not found or
-     * has no languages (then nothing is seeded, and the clone starts with English).
+     * The enabled languages of the keyboard [packageName], as the pesto_locales.txt the seed patch
+     * bundles; null when that keyboard is not found or has no languages. Read from its own enabled
+     * subtypes. It works for any installed IME, the patched clone included (it is an IME too), whose
+     * subtypes show the user's most recent language choices.
      *
      * @param allowImplicit see [InputMethodManager.getEnabledInputMethodSubtypeList]; false reads
      *   only the subtypes the user enabled.
      */
-    fun stockLanguagesFile(allowImplicit: Boolean = true): String? {
+    fun languagesFileFor(packageName: String, allowImplicit: Boolean = true): String? {
         val imm = context.getSystemService(InputMethodManager::class.java) ?: return null
-        val gboard = imm.inputMethodList.firstOrNull { it.packageName == KeyboardPatch.GBOARD_PACKAGE } ?: return null
-        val locales = imm.enabledSubtypesOf(gboard, allowImplicit)
-        return KeyboardLocales.fileContents(locales)
+        val ime = imm.inputMethodList.firstOrNull { it.packageName == packageName } ?: return null
+        return KeyboardLocales.fileContents(imm.enabledSubtypesOf(ime, allowImplicit))
     }
 
     private fun InputMethodManager.enabledSubtypesOf(ime: InputMethodInfo, allowImplicit: Boolean): List<KeyboardLocales.Locale> {

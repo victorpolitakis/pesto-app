@@ -62,8 +62,23 @@ class PatchKeyboardSectionTest {
     }
 
     @Test
-    fun `a foreign-key clone offers reinstall`() {
-        show(PatchKeyboardState(stage = KeyboardStage.NEEDS_REINSTALL))
+    fun `a foreign-key clone puts the stock keyboard back before removing, and shows no button while reading`() {
+        // Null step (still reading): no destructive button.
+        show(PatchKeyboardState(stage = KeyboardStage.NEEDS_REINSTALL, revertStep = null))
+        rule.onNodeWithTag("patch_kbd_reinstall").assertDoesNotExist()
+        rule.onNodeWithTag("patch_kbd_reinstall_enable").assertDoesNotExist()
+    }
+
+    @Test
+    fun `reinstall enables the stock keyboard first`() {
+        show(PatchKeyboardState(stage = KeyboardStage.NEEDS_REINSTALL, revertStep = RevertStep.ENABLE_STOCK))
+        click("patch_kbd_reinstall_enable")
+        assertEquals(listOf("enable"), calls)
+    }
+
+    @Test
+    fun `reinstall removes and patches again only at the remove step`() {
+        show(PatchKeyboardState(stage = KeyboardStage.NEEDS_REINSTALL, revertStep = RevertStep.REMOVE))
         click("patch_kbd_reinstall")
         assertEquals(listOf("reinstall"), calls)
     }
