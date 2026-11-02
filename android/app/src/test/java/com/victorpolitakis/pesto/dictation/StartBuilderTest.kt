@@ -104,10 +104,11 @@ class StartBuilderTest {
         p.settings.setDefaultProfile("note")
         p.dictionary.add("Pesto")
         // DataStore reads on its own IO thread, so virtual time does not wait for it: real time, with a limit.
+        // The settings and the dictionary reach the builder independently, so wait for both.
         val start = withContext(Dispatchers.Default) {
             withTimeout(5_000) {
                 var s = p.builder.build(whatsapp)
-                while (s.profile != "note") {
+                while (!(s.profile == "note" && s.terms == listOf("Pesto"))) {
                     delay(10)
                     s = p.builder.build(whatsapp)
                 }
