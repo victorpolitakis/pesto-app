@@ -1,6 +1,7 @@
 package com.victorpolitakis.pesto.keyboard
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import com.victorpolitakis.pesto.permissions.KeyboardActive
@@ -17,6 +18,9 @@ enum class KeyboardStage {
     /** Not built yet: offer to patch. */
     NOT_INSTALLED,
 
+    /** Installed, but signed with another key (Pesto's data was cleared): remove it and patch again. */
+    NEEDS_REINSTALL,
+
     /** Installed, but not enabled in the system keyboard list: send the user there. */
     INSTALLED_NOT_ENABLED,
 
@@ -26,24 +30,28 @@ enum class KeyboardStage {
     /** Current, but on Xiaomi its autostart has not been allowed yet (S2). */
     XIAOMI_AUTOSTART,
 
-    /** Installed, enabled and current: dictation goes through the keyboard. */
+    /** Installed by us, enabled and current: dictation goes through the keyboard. */
     ACTIVE,
 }
 
 object KeyboardStageRules {
     /**
-     * The step to show. Each check assumes the ones before it are done.
+     * The step to show. Each check assumes the ones before it are done. A clone signed with another
+     * key comes first (it must be removed before anything else), and the keyboard is active only
+     * when it is our clone.
      *
      * @param xiaomiAutostartShown the autostart page cannot be read, so it counts as done once opened
      */
     fun stage(
         installed: Boolean,
+        signedByUs: Boolean,
         enabled: Boolean,
         current: Boolean,
         isXiaomi: Boolean,
         xiaomiAutostartShown: Boolean,
     ): KeyboardStage = when {
         !installed -> KeyboardStage.NOT_INSTALLED
+        !signedByUs -> KeyboardStage.NEEDS_REINSTALL
         !enabled -> KeyboardStage.INSTALLED_NOT_ENABLED
         !current -> KeyboardStage.ENABLED_NOT_CURRENT
         isXiaomi && !xiaomiAutostartShown -> KeyboardStage.XIAOMI_AUTOSTART
@@ -51,22 +59,53 @@ object KeyboardStageRules {
     }
 }
 
+/** A step of the revert flow (phase 4): the normal Gboard back, then the clone removed. */
+enum class RevertStep {
+    /** The normal Gboard is disabled: enable it first, so the phone keeps a keyboard. */
+    ENABLE_STOCK,
+
+    /** The clone is still the chosen keyboard: pick the normal Gboard. */
+    CHOOSE_STOCK,
+
+    /** Safe to remove the clone. */
+    REMOVE,
+}
+
+object RevertRules {
+    fun step(stockEnabled: Boolean, cloneStillCurrent: Boolean): RevertStep = when {
+        !stockEnabled -> RevertStep.ENABLE_STOCK
+        cloneStillCurrent -> RevertStep.CHOOSE_STOCK
+        else -> RevertStep.REMOVE
+    }
+}
+
 /**
- * Reads where the patched keyboard stands on the phone: installed, enabled in the system keyboard
- * list, the current keyboard, and whether the stock Gboard is still enabled (an advisory, so the
- * user can disable it). Device-only; the step logic is the pure [KeyboardStageRules].
+ * Reads where the patched keyboard stands on the phone: installed, signed with this install's key,
+ * enabled in the system keyboard list, the current keyboard, and whether the stock Gboard is still
+ * enabled. Device-only; the step logic is the pure [KeyboardStageRules] and [RevertRules].
  *
  * Also tells the permission flow whether the keyboard is active, so the accessibility requirement
- * leaves the list once dictation goes through the keyboard ([KeyboardActive]).
+ * leaves the list once dictation goes through the keyboard ([KeyboardActive]). "Active" needs the
+ * clone to be ours, so a clone with another key (which the dictation service rejects) does not drop
+ * accessibility.
  */
 @Singleton
 class KeyboardStatus @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val signingKey: LocalSigningKey,
 ) : KeyboardActive {
     private val resolver get() = context.contentResolver
 
     fun installed(): Boolean =
         runCatching { context.packageManager.getPackageInfo(KeyboardPatch.PATCHED_PACKAGE, 0) }.isSuccess
+
+    /** The installed clone is signed with this install's local key. */
+    fun signedByUs(): Boolean {
+        val cert = signingKey.certificateSha256Bytes() ?: return false
+        return runCatching {
+            context.packageManager.hasSigningCertificate(KeyboardPatch.PATCHED_PACKAGE, cert, PackageManager.CERT_INPUT_SHA256)
+        }.getOrDefault(false)
+    }
 
     /** The clone's input method is in the system's enabled list. */
     fun enabled(): Boolean = enabledImeIds().any { it.startsWith("${KeyboardPatch.PATCHED_PACKAGE}/") }
@@ -79,10 +118,13 @@ class KeyboardStatus @Inject constructor(
     /** The stock Gboard is still enabled; the user is advised to disable it. */
     fun stockStillEnabled(): Boolean = enabledImeIds().any { it.startsWith("${KeyboardPatch.GBOARD_PACKAGE}/") }
 
-    override fun isActive(): Boolean = installed() && enabled() && current()
+    override fun isActive(): Boolean = installed() && signedByUs() && enabled() && current()
 
     fun stage(isXiaomi: Boolean, xiaomiAutostartShown: Boolean): KeyboardStage =
-        KeyboardStageRules.stage(installed(), enabled(), current(), isXiaomi, xiaomiAutostartShown)
+        KeyboardStageRules.stage(installed(), signedByUs(), enabled(), current(), isXiaomi, xiaomiAutostartShown)
+
+    /** The current revert step, from whether the stock Gboard is enabled and the clone still current. */
+    fun revertStep(): RevertStep = RevertRules.step(stockStillEnabled(), current())
 
     private fun enabledImeIds(): List<String> {
         // ENABLED_INPUT_METHODS is a colon-separated list of IME ids (pkg/.Service). It can be null

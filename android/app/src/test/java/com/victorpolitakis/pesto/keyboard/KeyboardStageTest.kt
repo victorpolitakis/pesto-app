@@ -3,15 +3,16 @@ package com.victorpolitakis.pesto.keyboard
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** The step the user is on, from installed/enabled/current and the Xiaomi autostart. No device. */
+/** The step the user is on, from installed/signed/enabled/current and the Xiaomi autostart. No device. */
 class KeyboardStageTest {
     private fun stage(
         installed: Boolean = true,
+        signedByUs: Boolean = true,
         enabled: Boolean = true,
         current: Boolean = true,
         isXiaomi: Boolean = false,
         xiaomiAutostartShown: Boolean = false,
-    ) = KeyboardStageRules.stage(installed, enabled, current, isXiaomi, xiaomiAutostartShown)
+    ) = KeyboardStageRules.stage(installed, signedByUs, enabled, current, isXiaomi, xiaomiAutostartShown)
 
     @Test
     fun `not installed`() {
@@ -19,7 +20,14 @@ class KeyboardStageTest {
     }
 
     @Test
-    fun `installed but not enabled`() {
+    fun `installed with another key needs reinstall, before every other step`() {
+        assertEquals(KeyboardStage.NEEDS_REINSTALL, stage(signedByUs = false))
+        // Even if it would otherwise look enabled, current and done.
+        assertEquals(KeyboardStage.NEEDS_REINSTALL, stage(signedByUs = false, enabled = true, current = true))
+    }
+
+    @Test
+    fun `ours but not enabled`() {
         assertEquals(KeyboardStage.INSTALLED_NOT_ENABLED, stage(enabled = false))
     }
 
@@ -29,7 +37,7 @@ class KeyboardStageTest {
     }
 
     @Test
-    fun `current and not xiaomi is active`() {
+    fun `ours, current and not xiaomi is active`() {
         assertEquals(KeyboardStage.ACTIVE, stage(isXiaomi = false))
     }
 
@@ -37,11 +45,5 @@ class KeyboardStageTest {
     fun `on xiaomi, autostart comes before active`() {
         assertEquals(KeyboardStage.XIAOMI_AUTOSTART, stage(isXiaomi = true, xiaomiAutostartShown = false))
         assertEquals(KeyboardStage.ACTIVE, stage(isXiaomi = true, xiaomiAutostartShown = true))
-    }
-
-    @Test
-    fun `each step assumes the ones before are done`() {
-        // Not enabled wins over not current and the Xiaomi step.
-        assertEquals(KeyboardStage.INSTALLED_NOT_ENABLED, stage(enabled = false, current = false, isXiaomi = true))
     }
 }

@@ -306,4 +306,11 @@
     <string name="patch_kbd_revert">Επαναφορά</string>
     <string name="patch_kbd_revert_explained">Για επαναφορά: ενεργοποίησε και διάλεξε το κανονικό Gboard, μετά αφαίρεσε το \"Gboard with Pesto\".</string>
     <string name="patch_kbd_unknown_sources">Επίτρεψε στο Pesto να εγκαθιστά εφαρμογές και δοκίμασε ξανά.</string>
+    <string name="patch_kbd_reinstall">Υπάρχει πληκτρολόγιο από άλλη εγκατάσταση. Αφαίρεσέ το και κάνε patch ξανά.</string>
+    <string name="patch_kbd_reinstall_open">Επανεγκατάσταση</string>
+    <string name="patch_kbd_revert_enable_stock">Ενεργοποίησε πρώτα το κανονικό Gboard, για να μείνει το κινητό με πληκτρολόγιο.</string>
+    <string name="patch_kbd_revert_choose_stock">Διάλεξε το κανονικό Gboard.</string>
+    <string name="patch_kbd_revert_remove">Αφαίρεσε το \"Gboard with Pesto\".</string>
+    <string name="patch_kbd_revert_remove_open">Αφαίρεση</string>
+    <string name="patch_kbd_cancel">Άκυρο</string>
 </resources>

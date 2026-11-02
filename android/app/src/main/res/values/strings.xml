@@ -306,4 +306,11 @@
     <string name="patch_kbd_revert">Revert</string>
     <string name="patch_kbd_revert_explained">To revert: enable and choose the normal Gboard, then remove \"Gboard with Pesto\".</string>
     <string name="patch_kbd_unknown_sources">Allow Pesto to install apps, then try again.</string>
+    <string name="patch_kbd_reinstall">A keyboard from another install is here. Remove it and patch again.</string>
+    <string name="patch_kbd_reinstall_open">Reinstall</string>
+    <string name="patch_kbd_revert_enable_stock">Enable the normal Gboard first, so the phone keeps a keyboard.</string>
+    <string name="patch_kbd_revert_choose_stock">Choose the normal Gboard.</string>
+    <string name="patch_kbd_revert_remove">Remove \"Gboard with Pesto\".</string>
+    <string name="patch_kbd_revert_remove_open">Remove</string>
+    <string name="patch_kbd_cancel">Cancel</string>
 </resources>

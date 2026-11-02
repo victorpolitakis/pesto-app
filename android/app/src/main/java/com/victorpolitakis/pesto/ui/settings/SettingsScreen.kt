@@ -48,7 +48,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -124,8 +124,11 @@ fun SettingsRoute(
     val patchKeyboard by patchViewModel.state.collectAsStateWithLifecycle()
     val patchActions = rememberPatchKeyboardActions(
         onBuild = patchViewModel::build,
-        onInstallFinished = patchViewModel::onInstallFinished,
-        onXiaomiAutostartShown = patchViewModel::markXiaomiAutostartShown,
+        onInstallResult = patchViewModel::onInstallResult,
+        onRemoved = patchViewModel::onRemoved,
+        onStartRevert = patchViewModel::startRevert,
+        onCancelRevert = patchViewModel::cancelRevert,
+        onXiaomiAutostartShown = patchViewModel::markKeyboardAutostartShown,
         onClearError = patchViewModel::clearError,
     )
     // The code of the pairing stays on the screen only, never in a log.
