@@ -9,6 +9,10 @@ import com.victorpolitakis.pesto.util.PestoLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -24,6 +28,12 @@ sealed interface AssistantResult {
 
     /** Not paired, or the backend refused the device token (`HTTP 403`). */
     data object Unauthorized : AssistantResult
+
+    /** Single-use `plan_id` expired or conflicted (`HTTP 409`). */
+    data object Conflict : AssistantResult
+
+    /** Per-device rate limit (`HTTP 429`) or global concurrency saturation (`HTTP 503`). */
+    data class RateLimited(val retryAfterS: Int) : AssistantResult
 
     /** Network failure, server error, or malformed JSON. */
     data class Failed(val reason: String) : AssistantResult
@@ -66,6 +76,17 @@ class AssistantApi @Inject constructor(
                         log.event("assistant unauthorized: token cleared")
                         AssistantResult.Unauthorized
                     }
+                    409 -> {
+                        log.event("assistant conflict http:409")
+                        AssistantResult.Conflict
+                    }
+                    429, 503 -> {
+                        val raw = response.body.string()
+                        val defaultWait = if (response.code == 429) 10 else 3
+                        val retryAfter = parseRetryAfter(response.header("Retry-After"), raw, defaultWait)
+                        log.event("assistant rate_limited http:${response.code} retry_after_s=$retryAfter")
+                        AssistantResult.RateLimited(retryAfter)
+                    }
                     else -> {
                         log.event("assistant failed http:${response.code}")
                         AssistantResult.Failed("http:${response.code}")
@@ -79,6 +100,14 @@ class AssistantApi @Inject constructor(
             log.event("assistant failed bad_response")
             AssistantResult.Failed("bad_response")
         }
+    }
+
+    private fun parseRetryAfter(headerValue: String?, rawBody: String, fallback: Int): Int {
+        val fromHeader = headerValue?.trim()?.toIntOrNull()
+        val fromJson = runCatching {
+            Json.parseToJsonElement(rawBody).jsonObject["retry_after_s"]?.jsonPrimitive?.intOrNull
+        }.getOrNull()
+        return (fromHeader ?: fromJson ?: fallback).coerceIn(1, 3_600)
     }
 
     private companion object {

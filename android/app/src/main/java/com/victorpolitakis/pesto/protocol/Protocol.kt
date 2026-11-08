@@ -3,6 +3,7 @@ package com.victorpolitakis.pesto.protocol
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.Locale
 
 /*
  * Messages between the phone and the backend. Kotlin copy of
@@ -121,12 +122,54 @@ enum class AssistantDestination {
 
 @Serializable
 enum class AssistantToolName {
-    @SerialName("get_stats") GET_STATS,
+    @SerialName("stat") STAT,
+    @SerialName("get_profiles") GET_PROFILES,
     @SerialName("search_history") SEARCH_HISTORY,
     @SerialName("recent_history") RECENT_HISTORY,
-    @SerialName("get_dictionary") GET_DICTIONARY,
-    @SerialName("get_profiles") GET_PROFILES,
+    @SerialName("search_dictionary") SEARCH_DICTIONARY,
 }
+
+@Serializable
+enum class AssistantStatMetric {
+    @SerialName("minutes_saved") MINUTES_SAVED,
+    @SerialName("words") WORDS,
+    @SerialName("dictations") DICTATIONS,
+    @SerialName("wpm") WPM,
+    @SerialName("top_app") TOP_APP,
+    @SerialName("dictionary") DICTIONARY,
+}
+
+@Serializable
+enum class AssistantTimePeriod {
+    @SerialName("today") TODAY,
+    @SerialName("week") WEEK,
+    @SerialName("all") ALL,
+}
+
+private val FTS_OPERATORS = setOf("and", "or", "not", "near")
+
+/** Mirrors `validate_keyword` in `protocol.py` (2..30 Unicode code points, alnum or internal `-`). */
+fun isValidAssistantKeyword(raw: String): Boolean {
+    val kw = raw.trim()
+    val cpCount = kw.codePointCount(0, kw.length)
+    if (cpCount !in 2..30) return false
+    if (kw.lowercase(Locale.ROOT) in FTS_OPERATORS) return false
+    if ("--" in kw) return false
+    if (!Character.isLetterOrDigit(kw.codePointAt(0)) || !Character.isLetterOrDigit(kw.codePointBefore(kw.length))) {
+        return false
+    }
+    var i = 0
+    while (i < kw.length) {
+        val cp = kw.codePointAt(i)
+        if (!Character.isLetterOrDigit(cp) && cp != '-'.code) return false
+        i += Character.charCount(cp)
+    }
+    return true
+}
+
+/** Trims, drops invalid FTS tokens, deduplicates in order, and caps at 3 keywords. */
+fun cleanAssistantKeywords(raw: List<String>?): List<String> =
+    raw.orEmpty().map { it.trim() }.filter(::isValidAssistantKeyword).distinct().take(3)
 
 @Serializable
 data class NavigationTarget(
@@ -137,42 +180,18 @@ data class NavigationTarget(
 @Serializable
 data class ToolCall(
     val tool: AssistantToolName,
-    val query: String? = null,
+    val keywords: List<String>? = null,
+    val metric: AssistantStatMetric? = null,
+    val period: AssistantTimePeriod? = null,
     val limit: Int? = null,
 )
 
 @Serializable
-data class AssistantTurn(
-    val role: String,
-    val text: String,
-)
-
-@Serializable
-data class DaySummary(
-    val date: String,
-    val dictations: Int,
-    val words: Int,
-)
-
-@Serializable
-data class AppCountSummary(
-    val app: String,
-    val dictations: Int,
-)
-
-@Serializable
-data class StatsSummary(
-    val dictations: Int = 0,
-    @SerialName("dictations_today") val dictationsToday: Int = 0,
-    val words: Int = 0,
-    @SerialName("words_today") val wordsToday: Int = 0,
-    @SerialName("words_this_week") val wordsThisWeek: Int = 0,
-    @SerialName("speech_minutes") val speechMinutes: Double = 0.0,
-    @SerialName("minutes_saved") val minutesSaved: Double = 0.0,
-    val wpm: Double? = null,
-    val days: List<DaySummary> = emptyList(),
-    @SerialName("top_apps") val topApps: List<AppCountSummary> = emptyList(),
-    @SerialName("by_profile") val byProfile: Map<String, Int> = emptyMap(),
+data class PreviousPlanState(
+    val tool: AssistantToolName,
+    val keywords: List<String> = emptyList(),
+    val metric: AssistantStatMetric? = null,
+    val period: AssistantTimePeriod? = null,
 )
 
 @Serializable
@@ -181,7 +200,7 @@ data class HistoryEntrySummary(
     val app: String,
     val profile: String,
     val words: Int = 0,
-    val text: String,
+    val snippet: String,
 )
 
 @Serializable
@@ -192,19 +211,10 @@ data class DictionarySummary(
 )
 
 @Serializable
-data class ProfilesSummary(
-    val available: List<String> = emptyList(),
-    @SerialName("default_profile") val defaultProfile: String,
-    @SerialName("app_profiles") val appProfiles: Map<String, String> = emptyMap(),
-)
-
-@Serializable
 data class ToolResults(
-    val stats: StatsSummary? = null,
     @SerialName("history_matches") val historyMatches: List<HistoryEntrySummary>? = null,
     @SerialName("recent_history") val recentHistory: List<HistoryEntrySummary>? = null,
     val dictionary: DictionarySummary? = null,
-    val profiles: ProfilesSummary? = null,
 )
 
 @Serializable
@@ -215,12 +225,14 @@ sealed interface AssistantRequest
 data class AssistantPlanRequest(
     val locale: String = "el",
     val query: String,
-    val context: List<AssistantTurn> = emptyList(),
+    @SerialName("previous_queries") val previousQueries: List<String> = emptyList(),
+    val previous: PreviousPlanState? = null,
 ) : AssistantRequest
 
 @Serializable
 @SerialName("answer")
 data class AssistantAnswerRequest(
+    @SerialName("plan_id") val planId: String,
     val locale: String = "el",
     val query: String,
     @SerialName("tool_results") val toolResults: ToolResults,
@@ -234,12 +246,14 @@ sealed interface AssistantResponse
 data class AssistantReply(
     val reply: String,
     val navigate: NavigationTarget? = null,
+    val relevant: List<Int> = emptyList(),
     @SerialName("fallback_reason") val fallbackReason: String? = null,
 ) : AssistantResponse
 
 @Serializable
 @SerialName("tool_calls")
 data class AssistantToolCalls(
+    @SerialName("plan_id") val planId: String? = null,
     val tools: List<ToolCall>,
 ) : AssistantResponse
 

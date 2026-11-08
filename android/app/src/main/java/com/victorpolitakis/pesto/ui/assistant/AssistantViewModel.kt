@@ -9,10 +9,14 @@ import com.victorpolitakis.pesto.protocol.AssistantAnswerRequest
 import com.victorpolitakis.pesto.protocol.AssistantPlanRequest
 import com.victorpolitakis.pesto.protocol.AssistantReply
 import com.victorpolitakis.pesto.protocol.AssistantToolCalls
-import com.victorpolitakis.pesto.protocol.AssistantTurn
+import com.victorpolitakis.pesto.protocol.AssistantToolName
 import com.victorpolitakis.pesto.protocol.NavigationTarget
+import com.victorpolitakis.pesto.protocol.PreviousPlanState
+import com.victorpolitakis.pesto.protocol.cleanAssistantKeywords
 import com.victorpolitakis.pesto.ui.components.DictationRowUi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +26,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class AssistantErrorKind { NETWORK, EXPIRED, RATE_LIMITED }
+
 /** One bubble in the ephemeral Assistant session. */
 data class ChatMessage(
     val id: Long,
@@ -30,6 +36,9 @@ data class ChatMessage(
     val navigate: NavigationTarget? = null,
     val citations: List<DictationRowUi> = emptyList(),
     val isError: Boolean = false,
+    val errorKind: AssistantErrorKind? = null,
+    val retryAfterS: Int = 0,
+    val blockedByGuard: Boolean = false,
 )
 
 /** Everything `AssistantScreen` renders. Lists live inside this data class for `compose-lints`. */
@@ -37,6 +46,7 @@ data class AssistantState(
     val paired: Boolean = true,
     val messages: List<ChatMessage> = emptyList(),
     val busy: Boolean = false,
+    val cooldownSeconds: Int = 0,
     val loading: Boolean = true,
 )
 
@@ -48,65 +58,203 @@ class AssistantViewModel @Inject constructor(
 ) : ViewModel() {
     private val messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     private val busy = MutableStateFlow(false)
+    private val cooldown = MutableStateFlow(0)
+    private var cooldownJob: Job? = null
+    private var lastPlanState: PreviousPlanState? = null
     private var nextId = 1L
 
-    val state: StateFlow<AssistantState> = combine(pairing.paired, messages, busy) { isPaired, list, isBusy ->
-        AssistantState(paired = isPaired, messages = list, busy = isBusy, loading = false)
+    val state: StateFlow<AssistantState> = combine(
+        pairing.paired,
+        messages,
+        busy,
+        cooldown,
+    ) { isPaired, list, isBusy, cd ->
+        AssistantState(paired = isPaired, messages = list, busy = isBusy, cooldownSeconds = cd, loading = false)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AssistantState())
 
     fun send(rawQuery: String, languageCode: String) {
         val query = rawQuery.trim().take(MAX_QUERY_CHARS)
-        if (query.isEmpty() || busy.value || !state.value.paired) return
+        if (query.isEmpty() || busy.value || cooldown.value > 0 || !state.value.paired) return
         val locale = if (languageCode.startsWith("el", ignoreCase = true)) "el" else "en"
-        val context = messages.value
-            .filter { !it.isError && it.text.isNotBlank() }
-            .takeLast(MAX_CONTEXT_TURNS)
-            .map { AssistantTurn(role = if (it.isUser) "user" else "assistant", text = it.text.take(MAX_CONTEXT_CHARS)) }
-
-        append(ChatMessage(id = nextId++, isUser = true, text = query))
+        val previousQueries = messages.value
+            .filter { it.isUser && !it.blockedByGuard && it.text.isNotBlank() }
+            .takeLast(MAX_PREVIOUS_QUERIES)
+            .map { it.text.take(MAX_PREVIOUS_QUERY_CHARS) }
+        val previousState = lastPlanState
+        val userMessageId = nextId++
+        append(ChatMessage(id = userMessageId, isUser = true, text = query))
         busy.value = true
 
         viewModelScope.launch {
             try {
-                when (val plan = api.send(AssistantPlanRequest(locale = locale, query = query, context = context))) {
-                    is AssistantResult.Unauthorized -> Unit // `paired` updates from DeviceTokenStore
-                    is AssistantResult.Failed -> appendError()
-                    is AssistantResult.Ok -> when (val res = plan.response) {
-                        is AssistantReply -> append(
-                            ChatMessage(id = nextId++, isUser = false, text = res.reply, navigate = res.navigate),
-                        )
-                        is AssistantToolCalls -> answerWithTools(locale, query, res)
-                    }
-                }
+                runTurn(
+                    userMessageId = userMessageId,
+                    locale = locale,
+                    query = query,
+                    previousQueries = previousQueries,
+                    previousState = previousState,
+                    allowConflictRetry = true,
+                )
             } finally {
                 busy.value = false
             }
         }
     }
 
-    private suspend fun answerWithTools(locale: String, query: String, calls: AssistantToolCalls) {
-        val executed = tools.execute(calls.tools)
-        val step2 = AssistantAnswerRequest(locale = locale, query = query, toolResults = executed.results)
-        when (val ans = api.send(step2)) {
+    private suspend fun runTurn(
+        userMessageId: Long,
+        locale: String,
+        query: String,
+        previousQueries: List<String>,
+        previousState: PreviousPlanState?,
+        allowConflictRetry: Boolean,
+    ) {
+        val planReq = AssistantPlanRequest(
+            locale = locale,
+            query = query,
+            previousQueries = previousQueries,
+            previous = previousState,
+        )
+        when (val plan = api.send(planReq)) {
             is AssistantResult.Unauthorized -> Unit
-            is AssistantResult.Failed -> appendError()
-            is AssistantResult.Ok -> when (val res = ans.response) {
-                is AssistantReply -> append(
-                    ChatMessage(
-                        id = nextId++,
-                        isUser = false,
-                        text = res.reply,
-                        navigate = null,
-                        citations = executed.citations,
-                    ),
-                )
-                is AssistantToolCalls -> appendError()
+            is AssistantResult.Conflict -> appendError(AssistantErrorKind.EXPIRED)
+            is AssistantResult.RateLimited -> appendRateLimited(plan.retryAfterS)
+            is AssistantResult.Failed -> appendError(AssistantErrorKind.NETWORK)
+            is AssistantResult.Ok -> when (val res = plan.response) {
+                is AssistantReply -> {
+                    if (res.fallbackReason?.startsWith("guard:") == true) {
+                        markUserMessageBlocked(userMessageId)
+                    }
+                    append(
+                        ChatMessage(
+                            id = nextId++,
+                            isUser = false,
+                            text = res.reply,
+                            navigate = res.navigate,
+                        ),
+                    )
+                }
+                is AssistantToolCalls -> {
+                    res.tools.firstOrNull()?.let { first ->
+                        lastPlanState = PreviousPlanState(
+                            tool = first.tool,
+                            keywords = cleanAssistantKeywords(first.keywords),
+                            metric = first.metric,
+                            period = first.period,
+                        )
+                    }
+                    val firstTool = res.tools.firstOrNull()
+                    if (res.planId == null || firstTool?.tool in LOCAL_TOOLS) {
+                        if (firstTool == null) {
+                            appendError(AssistantErrorKind.NETWORK)
+                        } else {
+                            val localReply = tools.formatLocalReply(firstTool, locale)
+                            append(ChatMessage(id = nextId++, isUser = false, text = localReply))
+                        }
+                    } else {
+                        answerWithTools(
+                            userMessageId = userMessageId,
+                            locale = locale,
+                            query = query,
+                            previousQueries = previousQueries,
+                            previousState = previousState,
+                            calls = res,
+                            allowConflictRetry = allowConflictRetry,
+                        )
+                    }
+                }
             }
         }
     }
 
-    private fun appendError() {
-        append(ChatMessage(id = nextId++, isUser = false, isError = true))
+    private suspend fun answerWithTools(
+        userMessageId: Long,
+        locale: String,
+        query: String,
+        previousQueries: List<String>,
+        previousState: PreviousPlanState?,
+        calls: AssistantToolCalls,
+        allowConflictRetry: Boolean,
+    ) {
+        val executed = tools.execute(calls.tools)
+        val step2 = AssistantAnswerRequest(
+            planId = calls.planId.orEmpty(),
+            locale = locale,
+            query = query,
+            toolResults = executed.results,
+        )
+        when (val ans = api.send(step2)) {
+            is AssistantResult.Unauthorized -> Unit
+            is AssistantResult.Conflict -> if (allowConflictRetry) {
+                runTurn(
+                    userMessageId = userMessageId,
+                    locale = locale,
+                    query = query,
+                    previousQueries = previousQueries,
+                    previousState = previousState,
+                    allowConflictRetry = false,
+                )
+            } else {
+                appendError(AssistantErrorKind.EXPIRED)
+            }
+            is AssistantResult.RateLimited -> appendRateLimited(ans.retryAfterS)
+            is AssistantResult.Failed -> appendError(AssistantErrorKind.NETWORK)
+            is AssistantResult.Ok -> when (val res = ans.response) {
+                is AssistantReply -> {
+                    if (res.fallbackReason?.startsWith("guard:") == true) {
+                        markUserMessageBlocked(userMessageId)
+                    }
+                    val pickedCitations = if (res.fallbackReason != null) {
+                        emptyList()
+                    } else {
+                        res.relevant.distinct()
+                            .filter { it in executed.citations.indices }
+                            .map { executed.citations[it] }
+                    }
+                    append(
+                        ChatMessage(
+                            id = nextId++,
+                            isUser = false,
+                            text = res.reply,
+                            navigate = null,
+                            citations = pickedCitations,
+                        ),
+                    )
+                }
+                is AssistantToolCalls -> appendError(AssistantErrorKind.NETWORK)
+            }
+        }
+    }
+
+    private fun markUserMessageBlocked(userMessageId: Long) {
+        messages.update { list ->
+            list.map { msg -> if (msg.id == userMessageId) msg.copy(blockedByGuard = true) else msg }
+        }
+    }
+
+    private fun appendRateLimited(retryAfterS: Int) {
+        val waitS = retryAfterS.coerceAtLeast(1)
+        cooldown.value = waitS
+        append(
+            ChatMessage(
+                id = nextId++,
+                isUser = false,
+                isError = true,
+                errorKind = AssistantErrorKind.RATE_LIMITED,
+                retryAfterS = waitS,
+            ),
+        )
+        cooldownJob?.cancel()
+        cooldownJob = viewModelScope.launch {
+            while (cooldown.value > 0) {
+                delay(1_000)
+                cooldown.update { (it - 1).coerceAtLeast(0) }
+            }
+        }
+    }
+
+    private fun appendError(kind: AssistantErrorKind = AssistantErrorKind.NETWORK) {
+        append(ChatMessage(id = nextId++, isUser = false, isError = true, errorKind = kind))
     }
 
     private fun append(message: ChatMessage) {
@@ -115,7 +263,8 @@ class AssistantViewModel @Inject constructor(
 
     companion object {
         const val MAX_QUERY_CHARS = 1_000
-        private const val MAX_CONTEXT_TURNS = 4
-        private const val MAX_CONTEXT_CHARS = 300
+        private const val MAX_PREVIOUS_QUERIES = 2
+        private const val MAX_PREVIOUS_QUERY_CHARS = 300
+        private val LOCAL_TOOLS = setOf(AssistantToolName.STAT, AssistantToolName.GET_PROFILES)
     }
 }

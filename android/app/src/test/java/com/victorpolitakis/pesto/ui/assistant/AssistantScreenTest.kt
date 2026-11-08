@@ -2,10 +2,12 @@ package com.victorpolitakis.pesto.ui.assistant
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
@@ -120,6 +122,23 @@ class AssistantScreenTest {
         }
         rule.onNodeWithTag("assistant_input").performTextInput("Γεια")
         assertEquals("Γεια", typed)
+    }
+
+    @Test
+    fun `expired and rate-limited error bubbles render localized text and cooldown disables send`() {
+        val messages = listOf(
+            ChatMessage(id = 1, isUser = false, isError = true, errorKind = AssistantErrorKind.EXPIRED),
+            ChatMessage(id = 2, isUser = false, isError = true, errorKind = AssistantErrorKind.RATE_LIMITED, retryAfterS = 12),
+        )
+        show(
+            AssistantState(paired = true, messages = messages, cooldownSeconds = 12, loading = false),
+            input = "Δοκιμή",
+        )
+        rule.onNodeWithText("Η συνεδρία έληξε", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("12 δευτερόλεπτα", substring = true).assertIsDisplayed()
+        rule.onNodeWithTag("assistant_send").assertIsNotEnabled()
+        rule.assertLayout()
+        rule.assertAccessible()
     }
 }
 

@@ -90,6 +90,53 @@ class AssistantApiTest {
     }
 
     @Test
+    fun `409 returns Conflict, 429 and 503 return RateLimited, 413 and 422 return Failed with log`() = runTest {
+        val conflictClient = api { req ->
+            jsonResponse(req, 409, """{"detail":"invalid_or_expired_plan"}""")
+        }
+        assertEquals(
+            AssistantResult.Conflict,
+            conflictClient.send(AssistantPlanRequest(locale = "el", query = "Γεια")),
+        )
+
+        val rateClient = api { req ->
+            Response.Builder()
+                .request(req)
+                .protocol(Protocol.HTTP_1_1)
+                .code(429)
+                .message("Too Many Requests")
+                .header("Retry-After", "45")
+                .body("""{"detail":"rate_limited","retry_after_s":45}""".toResponseBody("application/json".toMediaType()))
+                .build()
+        }
+        assertEquals(
+            AssistantResult.RateLimited(45),
+            rateClient.send(AssistantPlanRequest(locale = "el", query = "Γεια")),
+        )
+
+        val busyClient = api { req ->
+            jsonResponse(req, 503, """{"detail":"busy","retry_after_s":3}""")
+        }
+        assertEquals(
+            AssistantResult.RateLimited(3),
+            busyClient.send(AssistantPlanRequest(locale = "el", query = "Γεια")),
+        )
+
+        val log = FakeLog()
+        for (code in listOf(413, 422)) {
+            val failClient = api(log = log) { req ->
+                jsonResponse(req, code, """{"detail":"rejected"}""")
+            }
+            assertEquals(
+                AssistantResult.Failed("http:$code"),
+                failClient.send(AssistantPlanRequest(locale = "el", query = "Γεια")),
+            )
+        }
+        assertTrue(log.lines.any { "http:413" in it })
+        assertTrue(log.lines.any { "http:422" in it })
+    }
+
+    @Test
     fun `network failure and bad JSON return Failed`() = runTest {
         val ioClient = api { throw IOException("offline") }
         assertEquals(

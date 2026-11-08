@@ -27,6 +27,15 @@ data class TotalsRow(
     val minutesSaved: Double,
 )
 
+/** Period-filtered sums for local Assistant stat replies (`today`, `week`, `all`). */
+data class PeriodTotalsRow(
+    val dictations: Int,
+    val words: Int,
+    val audioSeconds: Double,
+    val wordsWithAudio: Int,
+    val minutesSaved: Double,
+)
+
 /** When a dictation ended and how many words were said, for the bars per day. */
 data class TimeWords(val createdAt: Long, val words: Int)
 
@@ -52,6 +61,15 @@ interface DictationDao {
             "ORDER BY created_at DESC, id DESC LIMIT :limit",
     )
     fun search(match: String, limit: Int): Flow<List<SearchRow>>
+
+    /** [match]: an FTS4 MATCH expression from [SearchText.ftsQuery]. Filters [since] BEFORE [limit]. */
+    @Query(
+        "SELECT id, package AS packageName, created_at AS createdAt, raw_words AS words, raw_text AS rawText, text " +
+            "FROM dictations WHERE id IN (SELECT rowid FROM dictations_fts WHERE dictations_fts MATCH :match) " +
+            "AND created_at >= :since " +
+            "ORDER BY created_at DESC, id DESC LIMIT :limit",
+    )
+    fun searchSince(match: String, since: Long, limit: Int): Flow<List<SearchRow>>
 
     @Query("SELECT * FROM dictations WHERE id = :id") suspend fun get(id: Long): DictationEntity?
 
@@ -86,6 +104,23 @@ interface DictationDao {
             "WHERE package IS NOT NULL GROUP BY package ORDER BY COUNT(*) DESC, MAX(created_at) DESC",
     )
     fun apps(): Flow<List<AppUsage>>
+
+    @Query(
+        "SELECT COUNT(*) AS dictations, " +
+            "COALESCE(SUM(raw_words), 0) AS words, " +
+            "COALESCE(SUM(audio_s), 0.0) AS audioSeconds, " +
+            "COALESCE(SUM(CASE WHEN audio_s IS NOT NULL THEN raw_words ELSE 0 END), 0) AS wordsWithAudio, " +
+            "COALESCE(SUM(CASE WHEN audio_s IS NOT NULL THEN MAX(0, raw_words / 40.0 - audio_s / 60.0) ELSE 0 END), 0.0) AS minutesSaved " +
+            "FROM dictations WHERE created_at >= :since",
+    )
+    suspend fun totalsSince(since: Long): PeriodTotalsRow
+
+    @Query(
+        "SELECT package AS packageName, COUNT(*) AS dictations, MAX(created_at) AS lastUsed FROM dictations " +
+            "WHERE package IS NOT NULL AND created_at >= :since " +
+            "GROUP BY package ORDER BY COUNT(*) DESC, MAX(created_at) DESC LIMIT :limit",
+    )
+    suspend fun topAppsSince(since: Long, limit: Int): List<AppUsage>
 
     // For the data check of phase 4: where something fails (Analytics, «Αξιοπιστία»).
 

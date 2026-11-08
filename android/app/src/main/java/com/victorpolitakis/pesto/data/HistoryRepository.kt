@@ -84,6 +84,15 @@ class HistoryRepository @Inject constructor(private val dao: DictationDao) : Dic
         return dao.search(match, limit).map { rows -> rows.map { it.toResult(query) } }
     }
 
+    /**
+     * Period-filtered FTS search (`created_at >= since` before SQL `LIMIT`).
+     * [query] always passes through [SearchText.ftsQuery], never raw into `MATCH`.
+     */
+    fun searchSince(query: String, since: Long, limit: Int = SEARCH_LIMIT): Flow<List<SearchResult>> {
+        val match = SearchText.ftsQuery(query) ?: return flowOf(emptyList())
+        return dao.searchSince(match, since, limit).map { rows -> rows.map { it.toResult(query) } }
+    }
+
     suspend fun get(id: Long): DictationDetail? = dao.get(id)?.toDetail()
 
     /** Returns what [restore] needs to put it back, or null if it was not there. */

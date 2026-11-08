@@ -10,6 +10,27 @@
     <string name="assistant_thinking">Thinking…</string>
     <string name="assistant_open_destination">Open: %1$s</string>
     <string name="assistant_error_network">Could not reach the backend. Try again.</string>
+    <string name="assistant_error_expired">Session expired before reading results. Please try again.</string>
+    <plurals name="assistant_error_rate_limited">
+        <item quantity="one">Too many requests. Try again in %1$d second.</item>
+        <item quantity="other">Too many requests. Try again in %1$d seconds.</item>
+    </plurals>
     <string name="assistant_unpaired">Pair this phone with the backend first to use the Assistant.</string>
     <string name="assistant_pair_open">Open backend settings</string>
+
+    <string name="assistant_period_today">Today</string>
+    <string name="assistant_period_week">This week</string>
+    <string name="assistant_period_all">In total</string>
+    <string name="assistant_stat_none">%1$s: no dictations recorded yet.</string>
+    <string name="assistant_stat_minutes_saved">%1$s: %2$s minutes saved across %3$s.</string>
+    <string name="assistant_stat_words">%1$s: %2$s across %3$s.</string>
+    <string name="assistant_stat_dictations">%1$s: %2$s (%3$s).</string>
+    <string name="assistant_stat_wpm">%1$s: %2$s words per minute on average.</string>
+    <string name="assistant_stat_wpm_none">%1$s: no speech speed recorded yet.</string>
+    <string name="assistant_stat_top_app">%1$s — top apps: %2$s.</string>
+    <string name="assistant_stat_top_app_none">%1$s: no app usage recorded yet.</string>
+    <string name="assistant_stat_dictionary">Your Dictionary has %1$s (%2$s characters left).</string>
+    <string name="assistant_stat_dictionary_empty">Your Dictionary has no terms yet.</string>
+    <string name="assistant_profiles_default_only">Default profile: %1$s. No per-app profiles set.</string>
+    <string name="assistant_profiles_with_apps">Default profile: %1$s. Per-app: %2$s.</string>
 </resources>

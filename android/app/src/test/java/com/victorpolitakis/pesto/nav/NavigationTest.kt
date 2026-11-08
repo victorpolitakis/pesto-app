@@ -21,6 +21,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.victorpolitakis.pesto.protocol.AssistantDestination
+import com.victorpolitakis.pesto.protocol.NavigationTarget
 import com.victorpolitakis.pesto.ui.assertAccessible
 import com.victorpolitakis.pesto.ui.assertLayout
 import com.victorpolitakis.pesto.ui.theme.PestoTheme
@@ -160,16 +162,46 @@ class NavigationTest {
     }
 
     @Test
-    fun `Assistant opens without the bottom bar, and navigateFromAssistant routes cleanly`() {
+    fun `Assistant opens without the bottom bar, and navigateFromAssistant routes every destination`() {
         show()
         rule.runOnUiThread { nav.navigate(Routes.Assistant) }
         rule.onNodeWithTag("route_assistant").assertIsDisplayed()
         rule.onNodeWithTag("bottom_bar").assertDoesNotExist()
 
-        rule.runOnUiThread {
-            nav.navigateFromAssistant(com.victorpolitakis.pesto.protocol.NavigationTarget(com.victorpolitakis.pesto.protocol.AssistantDestination.DICTIONARY))
+        val expectedTags = mapOf(
+            AssistantDestination.HOME to "route_home",
+            AssistantDestination.PROFILES to "route_profiles",
+            AssistantDestination.DICTIONARY to "route_dictionary",
+            AssistantDestination.HISTORY to "route_history",
+            AssistantDestination.SEARCH to "route_search",
+            AssistantDestination.ANALYTICS to "route_analytics",
+            AssistantDestination.APPS to "route_apps",
+            AssistantDestination.SETTINGS to "route_settings",
+            AssistantDestination.SETTINGS_LANGUAGES to "route_settings",
+            AssistantDestination.SETTINGS_PROFILE to "route_settings",
+            AssistantDestination.SETTINGS_OFFLINE to "route_settings",
+            AssistantDestination.SETTINGS_PERMISSIONS to "route_settings",
+            AssistantDestination.SETTINGS_OVERLAY to "route_settings",
+            AssistantDestination.SETTINGS_XIAOMI to "route_settings",
+            AssistantDestination.SETTINGS_BACKEND to "route_settings",
+            AssistantDestination.SETTINGS_PRIVACY to "route_settings",
+            AssistantDestination.SETTINGS_ABOUT to "route_settings",
+            AssistantDestination.PROFILE_DETAIL to "route_profile_detail",
+        )
+        assertEquals(AssistantDestination.entries.toSet(), expectedTags.keys)
+
+        for ((dest, routeTag) in expectedTags) {
+            val target = if (dest == AssistantDestination.PROFILE_DETAIL) {
+                NavigationTarget(dest, profileId = "mail")
+            } else {
+                NavigationTarget(dest)
+            }
+            rule.runOnUiThread { nav.navigateFromAssistant(target) }
+            rule.onNodeWithTag(routeTag).assertIsDisplayed()
         }
-        rule.onNodeWithTag("route_dictionary").assertIsDisplayed()
-        rule.onNodeWithTag("bottom_bar").assertIsDisplayed()
+
+        // PROFILE_DETAIL without profileId falls back cleanly to PROFILES tab.
+        rule.runOnUiThread { nav.navigateFromAssistant(NavigationTarget(AssistantDestination.PROFILE_DETAIL)) }
+        rule.onNodeWithTag("route_profiles").assertIsDisplayed()
     }
 }

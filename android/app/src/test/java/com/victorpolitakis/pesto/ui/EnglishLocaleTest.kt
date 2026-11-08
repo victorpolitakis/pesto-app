@@ -111,7 +111,7 @@ class EnglishLocaleTest {
     )
 
     private fun home(s: HomeState) = show {
-        HomeScreen(s, {}, {}, {}, {}, {}, {}, {})
+        HomeScreen(s, {}, {}, {}, {}, {}, {}, {}, {})
     }
 
     @Test

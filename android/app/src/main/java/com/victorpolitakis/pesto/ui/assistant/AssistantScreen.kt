@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -144,7 +145,7 @@ fun AssistantScreen(
             }
             ComposerBar(
                 input = input,
-                enabled = state.paired && !state.busy,
+                enabled = state.paired && !state.busy && state.cooldownSeconds == 0,
                 onInputChange = onInputChange,
                 onSend = { if (input.isNotBlank()) onSend(input) },
             )
@@ -223,7 +224,19 @@ private fun MessageItem(
         message.isError -> MaterialTheme.colorScheme.onErrorContainer
         else -> MaterialTheme.colorScheme.onSurface
     }
-    val body = if (message.isError) stringResource(R.string.assistant_error_network) else message.text
+    val body = if (message.isError) {
+        when (message.errorKind) {
+            AssistantErrorKind.EXPIRED -> stringResource(R.string.assistant_error_expired)
+            AssistantErrorKind.RATE_LIMITED -> pluralStringResource(
+                R.plurals.assistant_error_rate_limited,
+                message.retryAfterS,
+                message.retryAfterS,
+            )
+            AssistantErrorKind.NETWORK, null -> stringResource(R.string.assistant_error_network)
+        }
+    } else {
+        message.text
+    }
 
     Column(
         modifier.fillMaxWidth().testTag("message_${message.id}"),

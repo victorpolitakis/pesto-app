@@ -3,6 +3,8 @@ package com.victorpolitakis.pesto.protocol
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
@@ -66,42 +68,69 @@ class ProtocolTest {
     fun `assistant requests and responses match the docs examples`() {
         val plan = AssistantPlanRequest(
             locale = "el",
-            query = "Πόσα λεπτά έχω γλιτώσει;",
-            context = listOf(AssistantTurn("user", "Γεια!")),
+            query = "Τι είπα για το meeting;",
+            previousQueries = listOf("Πόσα λεπτά έχω κερδίσει;"),
+            previous = PreviousPlanState(
+                tool = AssistantToolName.STAT,
+                keywords = emptyList(),
+                metric = AssistantStatMetric.MINUTES_SAVED,
+                period = AssistantTimePeriod.TODAY,
+            ),
         )
         assertEquals(example("plan"), json(encodeAssistant(plan)))
 
         val answer = AssistantAnswerRequest(
+            planId = "pX9_2kLm8vQr4tYz1wBc7nDf0gHj3sKp",
             locale = "el",
-            query = "Πόσα λεπτά έχω γλιτώσει;",
+            query = "Τι είπα για το meeting;",
             toolResults = ToolResults(
-                stats = StatsSummary(
-                    dictations = 12,
-                    dictationsToday = 2,
-                    words = 900,
-                    wordsToday = 80,
-                    wordsThisWeek = 400,
-                    speechMinutes = 6.0,
-                    minutesSaved = 16.5,
-                    wpm = 150.0,
-                    days = listOf(DaySummary("2026-11-01", 2, 80)),
-                    topApps = listOf(AppCountSummary("WhatsApp", 7)),
-                    byProfile = mapOf("mail" to 12),
+                historyMatches = listOf(
+                    HistoryEntrySummary(
+                        createdAt = "2026-10-30 18:26",
+                        app = "Gmail",
+                        profile = "mail",
+                        words = 17,
+                        snippet = "Καλημέρα Γιώργο, το meeting πάει για την Πέμπτη στις 10:00.",
+                    ),
                 ),
             ),
         )
         assertEquals(example("answer"), json(encodeAssistant(answer)))
 
         assertEquals(
-            AssistantToolCalls(listOf(ToolCall(AssistantToolName.GET_STATS))),
+            AssistantToolCalls(
+                planId = "pX9_2kLm8vQr4tYz1wBc7nDf0gHj3sKp",
+                tools = listOf(
+                    ToolCall(
+                        tool = AssistantToolName.SEARCH_HISTORY,
+                        keywords = listOf("meeting"),
+                        period = AssistantTimePeriod.WEEK,
+                    ),
+                ),
+            ),
             decodeAssistant(example("tool_calls").toString()),
         )
         assertEquals(
             AssistantReply(
-                reply = "Έχεις εξοικονομήσει 16,5 λεπτά σε 12 υπαγορεύσεις.",
-                navigate = NavigationTarget(AssistantDestination.ANALYTICS),
+                reply = "Την Πέμπτη έστειλες στο Gmail ότι το meeting πάει στις 10:00.",
+                navigate = NavigationTarget(AssistantDestination.HISTORY),
+                relevant = listOf(0),
             ),
             decodeAssistant(example("reply").toString()),
+        )
+    }
+
+    @Test
+    fun `assistant keyword validation rejects FTS operators, quotes, wildcards, and over-bounds`() {
+        for (good in listOf("Πέμπτη", "meeting", "e-mail", "v2")) {
+            assertTrue("expected valid: $good", isValidAssistantKeyword(good))
+        }
+        for (bad in listOf("", "a", "α".repeat(31), "\"meeting\"", "meet*", "NEAR", "or", "AND", "not", "two words", "-a", "a-", "a--b")) {
+            assertFalse("expected invalid: $bad", isValidAssistantKeyword(bad))
+        }
+        assertEquals(
+            listOf("Πέμπτη", "meeting", "v2"),
+            cleanAssistantKeywords(listOf("OR", " Πέμπτη ", "meeting", "Πέμπτη", "v2", "fourth")),
         )
     }
 }

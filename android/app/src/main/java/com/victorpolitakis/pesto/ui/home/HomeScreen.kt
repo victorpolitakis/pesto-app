@@ -119,8 +119,8 @@ fun HomeScreen(
     onOpenLanguages: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenDictation: (Long) -> Unit,
+    onOpenAssistant: () -> Unit,
     modifier: Modifier = Modifier,
-    onOpenAssistant: () -> Unit = {},
 ) {
     val pager = rememberPagerState { HomePage.entries.size }
     Column(
@@ -350,6 +350,7 @@ private fun ScreenPreview(state: HomeState) {
             onOpenLanguages = {},
             onOpenHistory = {},
             onOpenDictation = {},
+            onOpenAssistant = {},
         )
     }
 }

@@ -158,19 +158,34 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
 }
 
 /** A tab keeps its own back stack, and the start (Home) stays under the others. */
-fun NavHostController.openTab(tab: Tab) = navigate(tab.route) {
-    popUpTo(graph.findStartDestination().id) { saveState = true }
-    launchSingleTop = true
-    restoreState = true
+fun NavHostController.openTab(tab: Tab) {
+    if (currentDestination?.hasRoute(tab.route::class) == true) return
+    navigate(tab.route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
 }
 
 /** Opens a validated [NavigationTarget] enum from the Assistant. */
 fun NavHostController.navigateFromAssistant(target: NavigationTarget) {
     when (target.destination) {
-        AssistantDestination.HOME -> openTab(Tab.HOME)
-        AssistantDestination.PROFILES -> openTab(Tab.PROFILES)
-        AssistantDestination.DICTIONARY -> openTab(Tab.DICTIONARY)
-        AssistantDestination.HISTORY -> openTab(Tab.HISTORY)
+        AssistantDestination.HOME -> {
+            popBackStack(Routes.Assistant, inclusive = true)
+            openTab(Tab.HOME)
+        }
+        AssistantDestination.PROFILES -> {
+            popBackStack(Routes.Assistant, inclusive = true)
+            openTab(Tab.PROFILES)
+        }
+        AssistantDestination.DICTIONARY -> {
+            popBackStack(Routes.Assistant, inclusive = true)
+            openTab(Tab.DICTIONARY)
+        }
+        AssistantDestination.HISTORY -> {
+            popBackStack(Routes.Assistant, inclusive = true)
+            openTab(Tab.HISTORY)
+        }
         AssistantDestination.SEARCH -> navigate(Routes.Search)
         AssistantDestination.ANALYTICS -> navigate(Routes.Analytics)
         AssistantDestination.APPS -> navigate(Routes.Apps)
@@ -184,7 +199,10 @@ fun NavHostController.navigateFromAssistant(target: NavigationTarget) {
         AssistantDestination.SETTINGS_BACKEND -> navigate(Routes.Settings(SettingsSection.BACKEND.name))
         AssistantDestination.SETTINGS_PRIVACY -> navigate(Routes.Settings(SettingsSection.PRIVACY.name))
         AssistantDestination.SETTINGS_ABOUT -> navigate(Routes.Settings(SettingsSection.ABOUT.name))
-        AssistantDestination.PROFILE_DETAIL -> target.profileId?.let { navigate(Routes.ProfileDetail(it)) } ?: openTab(Tab.PROFILES)
+        AssistantDestination.PROFILE_DETAIL -> target.profileId?.let { navigate(Routes.ProfileDetail(it)) } ?: run {
+            popBackStack(Routes.Assistant, inclusive = true)
+            openTab(Tab.PROFILES)
+        }
     }
 }
 
