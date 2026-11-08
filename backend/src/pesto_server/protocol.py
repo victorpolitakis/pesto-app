@@ -163,12 +163,39 @@ Destination = Literal[
     "PROFILE_DETAIL",
 ]
 ToolName = Literal[
-    "get_stats",
+    "stat",
+    "get_profiles",
     "search_history",
     "recent_history",
-    "get_dictionary",
-    "get_profiles",
+    "search_dictionary",
 ]
+StatMetric = Literal[
+    "minutes_saved",
+    "words",
+    "dictations",
+    "wpm",
+    "top_app",
+    "dictionary",
+]
+TimePeriod = Literal["today", "week", "all"]
+
+_FTS_OPERATORS = frozenset({"and", "or", "not", "near"})
+
+
+def validate_keyword(raw: str) -> str:
+    """Single safe token for FTS/dictionary lookup (2..30 alnum or internal '-')."""
+    if not isinstance(raw, str):
+        raise ValueError("keyword must be a string")
+    kw = raw.strip()
+    if len(kw) < 2 or len(kw) > 30:
+        raise ValueError("keyword must be 2..30 characters")
+    if kw.lower() in _FTS_OPERATORS:
+        raise ValueError("FTS boolean operators are not allowed as keywords")
+    if not kw[0].isalnum() or not kw[-1].isalnum() or "--" in kw:
+        raise ValueError("invalid keyword boundaries")
+    if not all(c.isalnum() or c == "-" for c in kw):
+        raise ValueError("keyword may contain only letters, digits, and '-'")
+    return kw
 
 
 class NavigationTarget(_ClientMessage):
@@ -186,45 +213,68 @@ class NavigationTarget(_ClientMessage):
 
 class ToolCall(_ClientMessage):
     tool: ToolName
-    query: str | None = Field(default=None, max_length=100)
-    limit: int | None = Field(default=None, ge=1, le=5)
+    keywords: list[str] | None = Field(default=None, min_length=1, max_length=3)
+    metric: StatMetric | None = None
+    period: TimePeriod | None = None
+    limit: int | None = Field(default=None, ge=1, le=3)
 
-
-class AssistantTurn(_ClientMessage):
-    role: Literal["user", "assistant"]
-    text: str = Field(min_length=1, max_length=1500)
-
-
-class DaySummary(_ClientMessage):
-    date: str = Field(max_length=16)
-    dictations: int = Field(ge=0)
-    words: int = Field(ge=0)
-
-
-class AppCountSummary(_ClientMessage):
-    app: str = Field(max_length=80)
-    dictations: int = Field(ge=0)
-
-
-class StatsSummary(_ClientMessage):
-    dictations: int = Field(default=0, ge=0)
-    dictations_today: int = Field(default=0, ge=0)
-    words: int = Field(default=0, ge=0)
-    words_today: int = Field(default=0, ge=0)
-    words_this_week: int = Field(default=0, ge=0)
-    speech_minutes: float = Field(default=0.0, ge=0.0)
-    minutes_saved: float = Field(default=0.0)
-    wpm: float | None = Field(default=None, ge=0.0)
-    days: list[DaySummary] = Field(default_factory=list, max_length=7)
-    top_apps: list[AppCountSummary] = Field(default_factory=list, max_length=5)
-    by_profile: dict[str, int] = Field(default_factory=dict)
-
-    @field_validator("by_profile")
+    @field_validator("keywords")
     @classmethod
-    def _bound_by_profile(cls, v: dict[str, int]) -> dict[str, int]:
-        if len(v) > 10 or any(len(k) > 32 or n < 0 for k, n in v.items()):
-            raise ValueError("invalid by_profile map")
-        return v
+    def _validate_keywords(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        return [validate_keyword(k) for k in v]
+
+    @model_validator(mode="after")
+    def _check_tool_fields(self) -> ToolCall:
+        if self.tool == "stat":
+            if self.metric is None:
+                raise ValueError("metric is required for stat")
+            if self.period is None:
+                self.period = "all"
+            if self.keywords is not None or self.limit is not None:
+                raise ValueError("stat does not accept keywords or limit")
+        elif self.tool == "get_profiles":
+            if any(
+                x is not None
+                for x in (self.keywords, self.metric, self.period, self.limit)
+            ):
+                raise ValueError("get_profiles takes no arguments")
+        elif self.tool == "search_history":
+            if not self.keywords:
+                raise ValueError("keywords are required for search_history")
+            if self.period is None:
+                self.period = "all"
+            if self.metric is not None or self.limit is not None:
+                raise ValueError("search_history does not accept metric or limit")
+        elif self.tool == "search_dictionary":
+            if not self.keywords:
+                raise ValueError("keywords are required for search_dictionary")
+            if any(x is not None for x in (self.metric, self.period, self.limit)):
+                raise ValueError("search_dictionary accepts only keywords")
+        elif self.tool == "recent_history":
+            if self.limit is None:
+                self.limit = 3
+            if any(x is not None for x in (self.keywords, self.metric, self.period)):
+                raise ValueError("recent_history accepts only limit")
+        return self
+
+
+class PreviousPlanState(_ClientMessage):
+    tool: ToolName
+    keywords: list[str] = Field(default_factory=list, max_length=3)
+    metric: StatMetric | None = None
+    period: TimePeriod | None = None
+
+    @field_validator("keywords", mode="before")
+    @classmethod
+    def _default_keywords(cls, v: object) -> object:
+        return [] if v is None else v
+
+    @field_validator("keywords")
+    @classmethod
+    def _validate_prev_keywords(cls, v: list[str]) -> list[str]:
+        return [validate_keyword(k) for k in v]
 
 
 class HistoryEntrySummary(_ClientMessage):
@@ -232,13 +282,13 @@ class HistoryEntrySummary(_ClientMessage):
     app: str = Field(max_length=80)
     profile: str = Field(max_length=32)
     words: int = Field(default=0, ge=0)
-    text: str = Field(max_length=500)
+    snippet: str = Field(max_length=160)
 
 
 class DictionarySummary(_ClientMessage):
     total: int = Field(default=0, ge=0)
     remaining_chars: int = Field(default=0)
-    terms: list[str] = Field(default_factory=list, max_length=50)
+    terms: list[str] = Field(default_factory=list, max_length=5)
 
     @field_validator("terms")
     @classmethod
@@ -248,45 +298,36 @@ class DictionarySummary(_ClientMessage):
         return terms
 
 
-class ProfilesSummary(_ClientMessage):
-    available: list[str] = Field(default_factory=list, max_length=10)
-    default_profile: str = Field(max_length=32)
-    app_profiles: dict[str, str] = Field(default_factory=dict)
-
-    @field_validator("available")
-    @classmethod
-    def _bound_available(cls, ids: list[str]) -> list[str]:
-        if any(len(i) > 32 for i in ids):
-            raise ValueError("profile id exceeds 32 characters")
-        return ids
-
-    @field_validator("app_profiles")
-    @classmethod
-    def _bound_app_profiles(cls, v: dict[str, str]) -> dict[str, str]:
-        if len(v) > 30 or any(len(k) > 80 or len(val) > 32 for k, val in v.items()):
-            raise ValueError("invalid app_profiles map")
-        return v
-
-
 class ToolResults(_ClientMessage):
-    stats: StatsSummary | None = None
     history_matches: list[HistoryEntrySummary] | None = Field(
-        default=None, max_length=5
+        default=None, max_length=3
     )
-    recent_history: list[HistoryEntrySummary] | None = Field(default=None, max_length=5)
+    recent_history: list[HistoryEntrySummary] | None = Field(
+        default=None, max_length=3
+    )
     dictionary: DictionarySummary | None = None
-    profiles: ProfilesSummary | None = None
+
+    @model_validator(mode="after")
+    def _check_combined_snippets(self) -> ToolResults:
+        total = len(self.history_matches or []) + len(self.recent_history or [])
+        if total > 3:
+            raise ValueError("combined history snippets may not exceed 3")
+        return self
 
 
 class AssistantPlanRequest(_ClientMessage):
     type: Literal["plan"]
     locale: AssistantLocale = "el"
     query: str = Field(min_length=1, max_length=1000)
-    context: list[AssistantTurn] = Field(default_factory=list, max_length=6)
+    previous_queries: list[Annotated[str, Field(min_length=1, max_length=300)]] = Field(
+        default_factory=list, max_length=2
+    )
+    previous: PreviousPlanState | None = None
 
 
 class AssistantAnswerRequest(_ClientMessage):
     type: Literal["answer"]
+    plan_id: str = Field(min_length=16, max_length=64)
     locale: AssistantLocale = "el"
     query: str = Field(min_length=1, max_length=1000)
     tool_results: ToolResults
@@ -300,13 +341,17 @@ assistant_request = TypeAdapter(AssistantRequest)
 
 class AssistantReply(BaseModel):
     type: Literal["reply"] = "reply"
-    reply: str
+    reply: str = Field(max_length=300)
     navigate: NavigationTarget | None = None
+    relevant: list[Annotated[int, Field(ge=0, le=2)]] = Field(
+        default_factory=list, max_length=3
+    )
     fallback_reason: str | None = None
 
 
 class AssistantToolCalls(BaseModel):
     type: Literal["tool_calls"] = "tool_calls"
+    plan_id: str | None = None
     tools: list[ToolCall] = Field(min_length=1, max_length=3)
 
 

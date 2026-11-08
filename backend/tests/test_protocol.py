@@ -77,18 +77,24 @@ def test_final_serializes():
 
 def test_assistant_plan_and_answer_validate():
     plan = assistant_request.validate_json(
-        '{"type": "plan", "locale": "el", "query": "Πόσες λέξεις;"}'
+        '{"type": "plan", "locale": "el", "query": "Πόσες λέξεις;",'
+        ' "previous_queries": ["Γεια σου"],'
+        ' "previous": {"tool": "stat", "metric": "words",'
+        ' "period": "today", "keywords": []}}'
     )
     assert isinstance(plan, AssistantPlanRequest)
-    assert plan.context == []
+    assert plan.previous_queries == ["Γεια σου"]
+    assert plan.previous is not None and plan.previous.metric == "words"
 
     answer = assistant_request.validate_json(
-        '{"type": "answer", "locale": "en", "query": "Recent?",'
-        ' "tool_results": {"recent_history": [{"created_at": "2026-11-01 10:00",'
-        ' "app": "Gmail", "profile": "mail", "words": 5, "text": "Hello"}]}}'
+        '{"type": "answer", "plan_id": "plan_token_1234567890", "locale": "en",'
+        ' "query": "Recent?", "tool_results": {"recent_history": ['
+        '{"created_at": "2026-11-01 10:00", "app": "Gmail", "profile": "mail",'
+        ' "words": 5, "snippet": "Hello"}]}}'
     )
     assert isinstance(answer, AssistantAnswerRequest)
     assert len(answer.tool_results.recent_history) == 1
+    assert answer.tool_results.recent_history[0].snippet == "Hello"
 
 
 @pytest.mark.parametrize(
@@ -96,14 +102,84 @@ def test_assistant_plan_and_answer_validate():
     [
         '{"type": "plan", "query": ""}',
         '{"type": "plan", "query": "hi", "extra_field": 1}',
+        (
+            '{"type": "plan", "query": "hi",'
+            ' "context": [{"role": "assistant", "text": "x"}]}'
+        ),
+        '{"type": "plan", "query": "hi", "previous_queries": ["a", "b", "c"]}',
         '{"type": "plan", "locale": "fr", "query": "hi"}',
         '{"type": "answer", "query": "hi"}',
-        '{"type": "answer", "query": "hi", "tool_results": {"unknown": 1}}',
+        (
+            '{"type": "answer", "plan_id": "plan_token_1234567890",'
+            ' "query": "hi", "tool_results": {"unknown": 1}}'
+        ),
+        (
+            '{"type": "answer", "plan_id": "plan_token_1234567890",'
+            ' "query": "hi", "tool_results": {"stats": {}}}'
+        ),
+        (
+            '{"type": "answer", "plan_id": "plan_token_1234567890",'
+            ' "query": "hi", "tool_results": {"profiles": {}}}'
+        ),
     ],
 )
 def test_assistant_bad_requests_are_rejected(raw):
     with pytest.raises(ValidationError):
         assistant_request.validate_json(raw)
+
+
+def test_tool_results_enforces_combined_three_snippet_budget():
+    entry = (
+        '{"created_at": "2026-11-01", "app": "Gmail", "profile": "mail",'
+        ' "words": 3, "snippet": "abc"}'
+    )
+    ok = (
+        '{"type": "answer", "plan_id": "plan_token_1234567890", "query": "q",'
+        f' "tool_results": {{"history_matches": [{entry}, {entry}],'
+        f' "recent_history": [{entry}]}}}}'
+    )
+    assert isinstance(assistant_request.validate_json(ok), AssistantAnswerRequest)
+
+    over = (
+        '{"type": "answer", "plan_id": "plan_token_1234567890", "query": "q",'
+        f' "tool_results": {{"history_matches": [{entry}, {entry}],'
+        f' "recent_history": [{entry}, {entry}]}}}}'
+    )
+    with pytest.raises(ValidationError):
+        assistant_request.validate_json(over)
+
+
+@pytest.mark.parametrize(
+    "bad_keywords",
+    [
+        [],
+        ["a"],
+        ["α" * 31],
+        ['"meeting"'],
+        ["meet*"],
+        ["NEAR"],
+        ["or"],
+        ["AND"],
+        ["not"],
+        ["two words"],
+        ["-lead"],
+        ["trail-"],
+        ["double--dash"],
+        ["one", "two", "three", "four"],
+    ],
+)
+def test_keyword_validation_rejects_fts_operators_and_bounds(bad_keywords):
+    with pytest.raises(ValidationError):
+        ToolCall(tool="search_history", keywords=bad_keywords, period="all")
+
+
+def test_keyword_validation_accepts_clean_greek_and_english_terms():
+    call = ToolCall(
+        tool="search_history",
+        keywords=["Πέμπτη", "e-mail", "v2"],
+        period="week",
+    )
+    assert call.keywords == ["Πέμπτη", "e-mail", "v2"]
 
 
 def test_navigation_target_profile_detail_validation():
@@ -121,9 +197,16 @@ def test_navigation_target_profile_detail_validation():
 
 
 def test_assistant_responses_serialize():
-    calls = AssistantToolCalls(tools=[ToolCall(tool="get_stats")])
-    assert '"type":"tool_calls"' in calls.model_dump_json(exclude_none=True)
-    reply = AssistantReply(
-        reply="OK", navigate=NavigationTarget(destination="ANALYTICS")
+    calls = AssistantToolCalls(
+        plan_id=None,
+        tools=[ToolCall(tool="stat", metric="minutes_saved", period="all")],
     )
-    assert '"destination":"ANALYTICS"' in reply.model_dump_json(exclude_none=True)
+    assert '"type":"tool_calls"' in calls.model_dump_json()
+    reply = AssistantReply(
+        reply="OK",
+        navigate=NavigationTarget(destination="ANALYTICS"),
+        relevant=[0, 2],
+    )
+    dumped = reply.model_dump_json(exclude_none=True)
+    assert '"destination":"ANALYTICS"' in dumped
+    assert '"relevant":[0,2]' in dumped

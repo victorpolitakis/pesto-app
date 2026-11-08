@@ -35,3 +35,10 @@ class Settings(BaseSettings):
     max_audio_s: float = 600.0
     keepalive_interval_s: float = 10.0
     finalize_timeout_s: float = 10.0
+
+    assistant_rpm: int = 6
+    assistant_rph: int = 60
+    assistant_rpd: int = 200
+    assistant_max_concurrency: int = 2
+    assistant_queue_timeout_s: float = 2.0
+    assistant_max_body_bytes: int = 16_384

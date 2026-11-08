@@ -89,14 +89,17 @@ class DeviceRegistry:
         self._write(data)
         return token
 
-    def is_valid(self, token: str) -> bool:
+    def authenticate(self, token: str) -> Device | None:
         if not token:
-            return False
+            return None
         digest = _sha256(token)
-        return any(
-            secrets.compare_digest(digest, d["token_sha256"])
-            for d in self._read()["devices"]
-        )
+        for d in self._read()["devices"]:
+            if secrets.compare_digest(digest, d["token_sha256"]):
+                return Device(**d)
+        return None
+
+    def is_valid(self, token: str) -> bool:
+        return self.authenticate(token) is not None
 
     def devices(self) -> list[Device]:
         return [Device(**d) for d in self._read()["devices"]]

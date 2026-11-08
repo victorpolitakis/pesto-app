@@ -2,26 +2,42 @@
 
 import asyncio
 import contextlib
+import json
 import secrets
+import time
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ValidationError
 from starlette.requests import HTTPConnection
 
-from .assistant import AssistantService
+from .assistant import (
+    AssistantBusyError,
+    AssistantService,
+    InvalidPlanError,
+    RateLimitExceeded,
+    UnexpectedToolResultsError,
+)
 from .config import Settings
 from .devices import DeviceRegistry
 from .llm.claude_cli import ClaudeCodeCli, LlmProvider
 from .llm.profiles import load_profiles
 from .pipeline import TextPipeline
 from .protocol import (
-    AssistantRequest,
-    AssistantResponse,
     Error,
     PairRequest,
     PairResponse,
     Start,
+    assistant_request,
     client_message,
 )
 from .session import DictationSession, InboxItem, SessionLimits
@@ -70,6 +86,7 @@ def create_app(
     provider: LlmProvider | None = None,
     limits: SessionLimits | None = None,
     devices: DeviceRegistry | None = None,
+    assistant_clock: Callable[[], float] | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
     stt_factory = stt_factory or soniox_factory(settings)
@@ -77,7 +94,32 @@ def create_app(
     limits = limits or SessionLimits.from_settings(settings)
     devices = devices or DeviceRegistry(settings.devices_path)
     pipeline = TextPipeline(load_profiles(settings.profiles_dir), provider)
-    assistant = AssistantService(provider)
+    assistant = AssistantService(
+        provider,
+        rpm=settings.assistant_rpm,
+        rph=settings.assistant_rph,
+        rpd=settings.assistant_rpd,
+        max_concurrency=settings.assistant_max_concurrency,
+        queue_timeout_s=settings.assistant_queue_timeout_s,
+        metrics_path=settings.metrics_path,
+        clock=assistant_clock or time.monotonic,
+    )
+
+    def require_assistant_device(http_request: Request) -> str:
+        header = http_request.headers.get("authorization", "")
+        if not header.startswith("Bearer "):
+            raise HTTPException(status_code=403, detail="unauthorized")
+        given = header.removeprefix("Bearer ").strip()
+        if not given:
+            raise HTTPException(status_code=403, detail="unauthorized")
+        if settings.pesto_app_token and secrets.compare_digest(
+            given.encode(), settings.pesto_app_token.encode()
+        ):
+            return "app_token"
+        device = devices.authenticate(given)
+        if device is None:
+            raise HTTPException(status_code=403, detail="unauthorized")
+        return f"device:{device.token_sha256[:16]}"
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -111,11 +153,60 @@ def create_app(
 
     @app.post("/v1/assistant")
     async def assistant_turn(
-        request: AssistantRequest, http_request: Request
-    ) -> AssistantResponse:
-        if not token_ok(http_request, settings.pesto_app_token, devices):
-            raise HTTPException(status_code=403, detail="unauthorized")
-        return await assistant.handle(request)
+        http_request: Request,
+        device_key: str = Depends(require_assistant_device),
+    ) -> Response:
+        max_bytes = settings.assistant_max_body_bytes
+        cl_header = http_request.headers.get("content-length")
+        if cl_header is not None:
+            try:
+                if int(cl_header) > max_bytes:
+                    return JSONResponse(
+                        status_code=413, content={"detail": "body_too_large"}
+                    )
+            except ValueError:
+                return JSONResponse(
+                    status_code=400, content={"detail": "invalid_content_length"}
+                )
+        chunks: list[bytes] = []
+        total = 0
+        async for chunk in http_request.stream():
+            total += len(chunk)
+            if total > max_bytes:
+                return JSONResponse(
+                    status_code=413, content={"detail": "body_too_large"}
+                )
+            chunks.append(chunk)
+        try:
+            parsed = assistant_request.validate_json(b"".join(chunks))
+        except ValidationError as e:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": json.loads(e.json(include_url=False))},
+            )
+        try:
+            response = await assistant.handle(parsed, device_key=device_key)
+        except InvalidPlanError:
+            return JSONResponse(
+                status_code=409, content={"detail": "invalid_or_expired_plan"}
+            )
+        except UnexpectedToolResultsError:
+            return JSONResponse(
+                status_code=422, content={"detail": "unexpected_tool_results"}
+            )
+        except RateLimitExceeded as e:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "rate_limited", "retry_after_s": e.retry_after_s},
+                headers={"Retry-After": str(e.retry_after_s)},
+            )
+        except AssistantBusyError as e:
+            return JSONResponse(
+                status_code=503,
+                content={"detail": "busy", "retry_after_s": e.retry_after_s},
+                headers={"Retry-After": str(e.retry_after_s)},
+            )
+        return JSONResponse(content=response.model_dump())
 
     # TODO(X13): POST /v1/rewrite for a playground on the phone: one profile at a
     # time, the same TextPipeline, no metrics and no History.
