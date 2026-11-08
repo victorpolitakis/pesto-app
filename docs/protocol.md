@@ -169,36 +169,62 @@ Content-Type: application/json
 
 ## Βοηθός (X3): `POST /v1/assistant`
 
-Stateless κλήση HTTP με το ίδιο `Authorization: Bearer <token της συσκευής>` (χωρίς έγκυρο token → `403 {"detail": "unauthorized"}`, άγνωστο ή μη έγκυρο πεδίο → `422`). Ο backend δεν αποθηκεύει ποτέ ερωτήματα ή αποτελέσματα εργαλείων.
+Κλήση HTTP με `Authorization: Bearer <token της συσκευής>` στο header (το `?token=` **δεν** γίνεται δεκτό εδώ). Ο έλεγχος του token εκτελείται πριν διαβαστεί το body (`403 {"detail": "unauthorized"}`), και το μέγεθος του body περιορίζεται streaming στα **16 KB** (`413 {"detail": "body_too_large"}`). Το `PESTO_APP_TOKEN` χρησιμοποιεί ξεχωριστό `device_key` (`"app_token"`) από τα tokens των συσκευών.
 
-Η ροή χωρίζεται σε δύο απομονωμένα βήματα (CaMeL / Dual-LLM):
+> **Απαίτηση single-worker `uvicorn`:** Το in-memory `PlanStore` (για τα `plan_id` μίας χρήσης) και ο per-device rate limiter κρατούν κατάσταση στη μνήμη της διεργασίας, οπότε ο `uvicorn` πρέπει να τρέχει με **έναν process (`--workers 1`)**.
 
-1. **Βήμα `plan` (χωρίς δεδομένα History/Dictionary):** αποφασίζει είτε άμεση απάντηση (`reply` + προαιρετικό `navigate` enum), είτε ως 3 read-only τοπικά εργαλεία (`tool_calls`: `get_stats`, `search_history`, `recent_history`, `get_dictionary`, `get_profiles`).
-2. **Βήμα `answer` (μόνο όταν ζητήθηκαν `tool_calls`):** διαβάζει τα τοπικά `tool_results` (με XML tags και spotlighting) και επιστρέφει **μόνο** `reply`, χωρίς εργαλεία και χωρίς `navigate`.
+Η ροή βασίζεται σε **Plan-Then-Execute + Action-Selector + Context-Minimization**:
+
+1. **Βήμα `plan` (μόνο trusted είσοδος χρήστη):** βλέπει την τρέχουσα ερώτηση (`query`), προαιρετικά **έως 2** προηγούμενες ερωτήσεις του χρήστη (`previous_queries`, ≤300 χαρακτήρες η καθεμία — ποτέ απαντήσεις του βοηθού και ποτέ ερωτήσεις που κόπηκαν από `guard:*`), και το προηγούμενο δομημένο εργαλείο (`previous`). Επιστρέφει είτε:
+   - άμεση απάντηση (`reply` ≤300 χαρακτήρες + προαιρετικό `navigate` enum),
+   - **τοπικό action-selector** (`stat` ή `get_profiles`, με `plan_id: null`), που απαντιέται **100% τοπικά στο κινητό** από έτοιμα templates χωρίς δεύτερη κλήση LLM, είτε
+   - **έως 3** read-only εργαλεία αναζήτησης (`search_history`, `recent_history`, `search_dictionary`) δεμένα με `plan_id` μίας χρήσης (TTL **60 s**).
+2. **Βήμα `answer` (μόνο όταν εκδόθηκε `plan_id`):** εξαργυρώνει μία φορά το `plan_id` για την ίδια συσκευή και το ίδιο `query`, διαβάζει τα datamarked αποσπάσματα (`<tool_results>`, XML-escaped attributes συμπεριλαμβανομένων των εισαγωγικών) και επιστρέφει `reply` (≤300 χαρακτήρες) και τα `0-based` indices των σχετικών αποσπασμάτων (`relevant`: `0..2`), χωρίς εργαλεία και χωρίς `navigate`.
+
+### Τι φεύγει από το κινητό
+
+- **Ποτέ δεν φεύγουν:** πλήρη κείμενα υπαγορεύσεων, database IDs, πλήρες Λεξικό, αριθμητικά στατιστικά (`Totals`), ή ονόματα εφαρμογών από τα στατιστικά (`top_app`) και τις αναθέσεις προφίλ (`get_profiles`).
+- **Στο `plan`:** μόνο το `query` (≤1.000 χαρακτήρες), έως 2 προηγούμενα `previous_queries` του χρήστη (≤300 χαρακτήρες), και το δομημένο `previous` (`tool`, `keywords`, `metric`, `period`).
+- **Στο `answer` (μόνο σε αναζήτηση Ιστορικού/Λεξικού):** συνολικά **έως 3 αποσπάσματα** (`history_matches` + `recent_history` μαζί) των **≤160 χαρακτήρων** το καθένα (με καθαρισμό μεμονωμένων UTF-16 surrogates και κόψιμο σε όριο code point), ή **έως 5 όροι** του Λεξικού που ταιριάζουν στα `keywords`.
+- **Logs (`backend/logs/metrics.jsonl`):** καταγράφονται αποκλειστικά αριθμοί και κωδικοί κατάστασης (χρόνος, tokens, πλήθος εργαλείων/citations), ποτέ κείμενο ερωτήσεων, αποσπασμάτων ή απαντήσεων.
+
+| Απάντηση | Πότε |
+|---|---|
+| `200` | `reply` ή `tool_calls` |
+| `403` `{"detail": "unauthorized"}` | Λείπει/λάθος/ανακληθέν `Bearer` token (ελέγχεται πριν από το body) |
+| `409` `{"detail": "invalid_or_expired_plan"}` | Άγνωστο, ληγμένο (>60 s), ξαναχρησιμοποιημένο ή ξένης συσκευής `plan_id` |
+| `413` `{"detail": "body_too_large"}` | Request body πάνω από 16 KB (`Content-Length` ή streaming) |
+| `422` | Άγνωστο/μη έγκυρο πεδίο, >3 συνολικά snippets, ή `tool_results` εκτός του `plan_id` |
+| `429` `{"detail": "rate_limited", "retry_after_s": …}` | Υπέρβαση ορίου συσκευής στο `plan` (`6/λεπτό`, `60/ώρα`, `200/ημέρα`, με `Retry-After`) |
+| `503` `{"detail": "busy", "retry_after_s": 3}` | Κορεσμός ταυτόχρονων κλήσεων Haiku (`Semaphore(2)`, με `Retry-After`) |
 
 ### Παραδείγματα `POST /v1/assistant`
 
 ```json
 {"type": "plan",
  "locale": "el",
- "query": "Πόσα λεπτά έχω γλιτώσει;",
- "context": [{"role": "user", "text": "Γεια!"}]}
+ "query": "Τι είπα για το meeting;",
+ "previous_queries": ["Πόσα λεπτά έχω κερδίσει;"],
+ "previous": {"tool": "stat", "keywords": [], "metric": "minutes_saved", "period": "today"}}
 ```
 
 ```json
 {"type": "tool_calls",
- "tools": [{"tool": "get_stats"}]}
+ "plan_id": "pX9_2kLm8vQr4tYz1wBc7nDf0gHj3sKp",
+ "tools": [{"tool": "search_history", "keywords": ["meeting"], "period": "week"}]}
 ```
 
 ```json
 {"type": "answer",
+ "plan_id": "pX9_2kLm8vQr4tYz1wBc7nDf0gHj3sKp",
  "locale": "el",
- "query": "Πόσα λεπτά έχω γλιτώσει;",
- "tool_results": {"stats": {"dictations": 12, "dictations_today": 2, "words": 900, "words_today": 80, "words_this_week": 400, "speech_minutes": 6.0, "minutes_saved": 16.5, "wpm": 150.0, "days": [{"date": "2026-11-01", "dictations": 2, "words": 80}], "top_apps": [{"app": "WhatsApp", "dictations": 7}], "by_profile": {"mail": 12}}}}
+ "query": "Τι είπα για το meeting;",
+ "tool_results": {"history_matches": [{"created_at": "2026-10-30 18:26", "app": "Gmail", "profile": "mail", "words": 17, "snippet": "Καλημέρα Γιώργο, το meeting πάει για την Πέμπτη στις 10:00."}]}}
 ```
 
 ```json
 {"type": "reply",
- "reply": "Έχεις εξοικονομήσει 16,5 λεπτά σε 12 υπαγορεύσεις.",
- "navigate": {"destination": "ANALYTICS"}}
+ "reply": "Την Πέμπτη έστειλες στο Gmail ότι το meeting πάει στις 10:00.",
+ "navigate": {"destination": "HISTORY"},
+ "relevant": [0]}
 ```
