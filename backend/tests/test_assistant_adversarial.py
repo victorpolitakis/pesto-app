@@ -18,7 +18,7 @@ import asyncio
 
 import pytest
 from eval_assistant_injection import carried_out, load_assistant_attacks
-from fakes import FakeLlm
+from fakes import FakeLlm, register_plan
 from pydantic import ValidationError
 
 from pesto_server.assistant import (
@@ -70,7 +70,8 @@ def test_attack_is_stopped_end_to_end(attack):
     llm = FakeLlm(json_reply=hostile_llm)
     service = AssistantService(llm)
     if isinstance(req, AssistantAnswerRequest):
-        service.register_plan_for_test(
+        register_plan(
+            service,
             plan_id=req.plan_id,
             device_key="test_device",
             query=req.query,

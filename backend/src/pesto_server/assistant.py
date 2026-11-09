@@ -295,15 +295,20 @@ _SPOOFED_TAG_RE = re.compile(
 # or "Return to Home").
 ASSISTANT_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 ASSISTANT_URL_RE = re.compile(r"(?:https?://|www\.)\S+")
+# Code keywords are lower case, so this is case-sensitive on purpose: prose like
+# "Import your terms from Settings." or "Class notes: ..." is not code. Only the
+# HTML tag is matched in any case.
 ASSISTANT_CODE_RE = re.compile(
     r"```"
-    r"|<\s*script\b"
-    r"|^\s*(?:def|class)\s+\w+\s*[\(:]"
-    r"|^\s*(?:import\s+\w+|from\s+[\w.]+\s+import\b)"
+    r"|(?i:<\s*script\b)"
+    r"|^\s*def\s+\w+\s*\("
+    r"|^\s*class\s+\w+\s*(?:\([^)\n]*\))?\s*:\s*$"
+    r"|^\s*import\s+[\w.]+(?:\s+as\s+\w+)?\s*;?\s*$"
+    r"|^\s*from\s+[\w.]+\s+import\s+[\w*, ]+$"
     r"|^\s*function\s+\w+\s*\("
     r"|^\s*(?:const|let|var)\s+\w+\s*="
     r"|^\s*(?:console\.log|#include\b)",
-    re.IGNORECASE | re.MULTILINE,
+    re.MULTILINE,
 )
 
 LEAK_SUBSTRINGS: tuple[str, ...] = (
@@ -699,22 +704,12 @@ class PlanStore:
         )
         return plan_id
 
-    def put_fixed(
-        self,
-        *,
-        plan_id: str,
-        device_key: str,
-        query: str,
-        locale: AssistantLocale,
-        tools: tuple[str, ...],
-    ) -> None:
-        self._plans[plan_id] = PendingPlan(
-            device_key=device_key,
-            query_sha256=_sha256(query),
-            locale=locale,
-            tools=tools,
-            created_at=self._clock(),
-        )
+    def restore(self, plan_id: str, plan: PendingPlan) -> None:
+        """Puts back a plan whose `answer` never reached the LLM (busy, 503).
+
+        Keeps the original `created_at`, so the TTL does not restart.
+        """
+        self._plans[plan_id] = plan
 
     def consume(
         self,
@@ -844,23 +839,6 @@ class AssistantService:
         self._semaphore = asyncio.Semaphore(max(1, max_concurrency))
         self._queue_timeout_s = queue_timeout_s
 
-    def register_plan_for_test(
-        self,
-        *,
-        plan_id: str,
-        device_key: str,
-        query: str,
-        locale: AssistantLocale,
-        tools: tuple[str, ...],
-    ) -> None:
-        self._plans.put_fixed(
-            plan_id=plan_id,
-            device_key=device_key,
-            query=query,
-            locale=locale,
-            tools=tools,
-        )
-
     async def handle(
         self, request: AssistantRequest, *, device_key: str = "app_token"
     ) -> AssistantResponse:
@@ -887,7 +865,7 @@ class AssistantService:
             return await self._plan(request, device_key=device_key)
 
         try:
-            self._plans.consume(
+            plan = self._plans.consume(
                 request.plan_id,
                 device_key=device_key,
                 query=request.query,
@@ -911,7 +889,12 @@ class AssistantService:
                 reply=SAFE_REFUSAL[request.locale],
                 fallback_reason=fb,
             )
-        return await self._answer(request)
+        try:
+            return await self._answer(request)
+        except AssistantBusyError:
+            # The LLM was never called: the client can retry with the same plan_id.
+            self._plans.restore(request.plan_id, plan)
+            raise
 
     async def _call_llm(
         self, system_prompt: str, schema: dict, prompt: str, *, step: str

@@ -5,15 +5,19 @@ import json
 
 import pytest
 from conftest import DEVICE, TOKEN
-from fakes import FakeClock, FakeLlm, FakeSttFactory
+from fakes import FakeClock, FakeLlm, FakeSttFactory, register_plan
 from fastapi.testclient import TestClient
 
 from pesto_server.app import create_app
 from pesto_server.assistant import (
     ANSWER_SCHEMA,
+    ASSISTANT_CODE_RE,
     DEFAULT_ASSISTANT_TIMEOUT_S,
     MAX_REPLY_CHARS,
     PLAN_SCHEMA,
+    AssistantBusyError,
+    AssistantService,
+    InvalidPlanError,
     assistant_input_guard,
     assistant_output_guard,
     escape_xml,
@@ -817,6 +821,73 @@ def test_global_semaphore_returns_503_when_saturated(settings):
     assert s3 == 503
     assert b3["detail"] == "busy"
     assert "retry-after" in h3
+
+
+def test_busy_answer_keeps_plan_id_for_retry_and_success_consumes_it():
+    llm = FakeLlm(json_reply=lambda _s, _sc, _p: {"relevant": [], "reply": "OK"})
+    service = AssistantService(llm, max_concurrency=1, queue_timeout_s=0.05)
+    request = AssistantAnswerRequest(
+        type="answer",
+        plan_id="plan_busy_1234567890abcdef",
+        locale="en",
+        query="What did I say?",
+        tool_results=ToolResults(recent_history=[]),
+    )
+
+    async def run():
+        register_plan(
+            service,
+            plan_id=request.plan_id,
+            device_key="dev",
+            query=request.query,
+            locale="en",
+            tools=("recent_history",),
+        )
+        await service._semaphore.acquire()  # the only slot is taken
+        with pytest.raises(AssistantBusyError):
+            await service.handle(request, device_key="dev")
+        service._semaphore.release()
+        first = await service.handle(request, device_key="dev")
+        with pytest.raises(InvalidPlanError):
+            await service.handle(request, device_key="dev")
+        return first
+
+    first = asyncio.run(run())
+    assert first.reply == "OK"
+    assert len(llm.json_calls) == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Import your terms from Settings.",
+        "Class notes: bring the book.",
+        "import your terms from Settings",
+        "class notes: bring the book",
+        "Function of the profile is to clean text.",
+        "Let me know. Const = 5 is not code here",
+    ],
+)
+def test_code_regex_ignores_prose_that_starts_like_code(text):
+    assert ASSISTANT_CODE_RE.search(text) is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "```python\nx = 1\n```",
+        "<SCRIPT>alert(1)</SCRIPT>",
+        "import os",
+        "from os.path import join",
+        "def hack(x):\n    pass",
+        "class Foo(Base):\n    pass",
+        "function exploit() { return 1; }",
+        "const x = 1;",
+        "#include <stdio.h>",
+    ],
+)
+def test_code_regex_still_catches_real_code(text):
+    assert ASSISTANT_CODE_RE.search(text) is not None
 
 
 def test_input_guard_stops_injection_without_calling_llm(settings):

@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 
+from pesto_server.assistant import AssistantService, PendingPlan, _sha256
 from pesto_server.llm.claude_cli import LlmError, LlmJsonResult, LlmResult
 from pesto_server.llm.profiles import Profile
 from pesto_server.stt import SttConfig, SttError, SttUpdate
@@ -146,3 +147,22 @@ class FakeClock:
 
     def advance(self, seconds: float) -> None:
         self.now += seconds
+
+
+def register_plan(
+    service: AssistantService,
+    *,
+    plan_id: str,
+    device_key: str,
+    query: str,
+    locale: str,
+    tools: tuple[str, ...],
+) -> None:
+    """Puts a plan with a known id in the service's store (tests only)."""
+    service._plans._plans[plan_id] = PendingPlan(
+        device_key=device_key,
+        query_sha256=_sha256(query),
+        locale=locale,
+        tools=tools,
+        created_at=service._plans._clock(),
+    )
