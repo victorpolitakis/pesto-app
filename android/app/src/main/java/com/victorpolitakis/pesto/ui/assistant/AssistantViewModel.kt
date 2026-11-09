@@ -15,7 +15,6 @@ import com.victorpolitakis.pesto.protocol.PreviousPlanState
 import com.victorpolitakis.pesto.protocol.cleanAssistantKeywords
 import com.victorpolitakis.pesto.ui.components.DictationRowUi
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +24,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 enum class AssistantErrorKind { NETWORK, EXPIRED, RATE_LIMITED }
@@ -195,7 +193,7 @@ class AssistantViewModel @Inject constructor(
             // `answer` is never rate limited, so this is the busy 503: the backend kept the
             // plan_id, so one retry with the same results does not cost a new `plan`.
             val waitMs = ans.retryAfterS.coerceIn(1, MAX_BUSY_RETRY_S) * 1_000L
-            withContext(Dispatchers.Default) { delay(waitMs) }
+            delay(waitMs)
             ans = api.send(step2)
         }
         when (ans) {

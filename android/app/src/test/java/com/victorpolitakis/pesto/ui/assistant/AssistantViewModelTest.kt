@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -493,7 +494,7 @@ class AssistantViewModelTest {
     }
 
     @Test
-    fun `a busy 503 on the answer retries once with the same plan_id and results`() = runBlocking {
+    fun `a busy 503 on the answer retries once with the same plan_id and results`() = runTest {
         history.record(newDictation("Σημείωση δοκιμής", createdAt = NOW))
         val (vm, requests) = makeVm { req, _, n ->
             when (n) {
@@ -522,7 +523,7 @@ class AssistantViewModelTest {
     }
 
     @Test
-    fun `a second busy 503 on the answer shows the cooldown without a third try`() = runBlocking {
+    fun `a second busy 503 on the answer shows the cooldown without a third try`() = runTest {
         history.record(newDictation("Σημείωση δοκιμής", createdAt = NOW))
         val (vm, requests) = makeVm { req, _, n ->
             when (n) {
