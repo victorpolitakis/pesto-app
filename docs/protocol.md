@@ -196,7 +196,7 @@ Content-Type: application/json
 | `413` `{"detail": "body_too_large"}` | Request body πάνω από 16 KB (`Content-Length` ή streaming) |
 | `422` | Άγνωστο/μη έγκυρο πεδίο, >3 συνολικά snippets, ή `tool_results` εκτός του `plan_id` |
 | `429` `{"detail": "rate_limited", "retry_after_s": …}` | Υπέρβαση ορίου συσκευής στο `plan` (`6/λεπτό`, `60/ώρα`, `200/ημέρα`, με `Retry-After`) |
-| `503` `{"detail": "busy", "retry_after_s": 3}` | Κορεσμός ταυτόχρονων κλήσεων Haiku (`Semaphore(2)`, με `Retry-After`) |
+| `503` `{"detail": "busy", "retry_after_s": 3}` | Κορεσμός ταυτόχρονων κλήσεων Haiku (`Semaphore(2)`, με `Retry-After`). Στο `answer` το `plan_id` **δεν καταναλώνεται**: το κινητό ξαναστέλνει το ίδιο αίτημα μία φορά |
 
 ### Παραδείγματα `POST /v1/assistant`
 
