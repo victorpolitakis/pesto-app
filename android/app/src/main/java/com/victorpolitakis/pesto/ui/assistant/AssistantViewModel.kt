@@ -15,6 +15,7 @@ import com.victorpolitakis.pesto.protocol.PreviousPlanState
 import com.victorpolitakis.pesto.protocol.cleanAssistantKeywords
 import com.victorpolitakis.pesto.ui.components.DictationRowUi
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 enum class AssistantErrorKind { NETWORK, EXPIRED, RATE_LIMITED }
@@ -87,7 +89,9 @@ class AssistantViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                runTurn(
+                // Only a successful tool turn leaves a state for the next question: a plain
+                // reply, an error or a fallback clears it, so a follow-up never binds to a stale tool.
+                lastPlanState = runTurn(
                     userMessageId = userMessageId,
                     locale = locale,
                     query = query,
@@ -101,6 +105,7 @@ class AssistantViewModel @Inject constructor(
         }
     }
 
+    /** Returns the state a follow-up may build on, or null when the turn did not end with a tool answer. */
     private suspend fun runTurn(
         userMessageId: Long,
         locale: String,
@@ -108,7 +113,7 @@ class AssistantViewModel @Inject constructor(
         previousQueries: List<String>,
         previousState: PreviousPlanState?,
         allowConflictRetry: Boolean,
-    ) {
+    ): PreviousPlanState? {
         val planReq = AssistantPlanRequest(
             locale = locale,
             query = query,
@@ -116,7 +121,7 @@ class AssistantViewModel @Inject constructor(
             previous = previousState,
         )
         when (val plan = api.send(planReq)) {
-            is AssistantResult.Unauthorized -> Unit
+            is AssistantResult.Unauthorized -> return null
             is AssistantResult.Conflict -> appendError(AssistantErrorKind.EXPIRED)
             is AssistantResult.RateLimited -> appendRateLimited(plan.retryAfterS)
             is AssistantResult.Failed -> appendError(AssistantErrorKind.NETWORK)
@@ -135,39 +140,41 @@ class AssistantViewModel @Inject constructor(
                     )
                 }
                 is AssistantToolCalls -> {
-                    res.tools.firstOrNull()?.let { first ->
-                        lastPlanState = PreviousPlanState(
-                            tool = first.tool,
-                            keywords = cleanAssistantKeywords(first.keywords),
-                            metric = first.metric,
-                            period = first.period,
-                        )
-                    }
                     val firstTool = res.tools.firstOrNull()
-                    if (res.planId == null || firstTool?.tool in LOCAL_TOOLS) {
-                        if (firstTool == null) {
-                            appendError(AssistantErrorKind.NETWORK)
-                        } else {
-                            val localReply = tools.formatLocalReply(firstTool, locale)
-                            append(ChatMessage(id = nextId++, isUser = false, text = localReply))
-                        }
-                    } else {
-                        answerWithTools(
-                            userMessageId = userMessageId,
-                            locale = locale,
-                            query = query,
-                            previousQueries = previousQueries,
-                            previousState = previousState,
-                            calls = res,
-                            allowConflictRetry = allowConflictRetry,
-                        )
+                    if (firstTool == null) {
+                        appendError(AssistantErrorKind.NETWORK)
+                        return null
                     }
+                    val state = PreviousPlanState(
+                        tool = firstTool.tool,
+                        keywords = cleanAssistantKeywords(firstTool.keywords),
+                        metric = firstTool.metric,
+                        period = firstTool.period,
+                    )
+                    if (res.planId == null || firstTool.tool in LOCAL_TOOLS) {
+                        val localReply = tools.formatLocalReply(firstTool, locale)
+                        append(ChatMessage(id = nextId++, isUser = false, text = localReply))
+                        return state
+                    }
+                    return answerWithTools(
+                        state = state,
+                        userMessageId = userMessageId,
+                        locale = locale,
+                        query = query,
+                        previousQueries = previousQueries,
+                        previousState = previousState,
+                        calls = res,
+                        allowConflictRetry = allowConflictRetry,
+                    )
                 }
             }
         }
+        return null
     }
 
+    /** Returns [state] after a clean answer, the retried turn's state after a 409, else null. */
     private suspend fun answerWithTools(
+        state: PreviousPlanState,
         userMessageId: Long,
         locale: String,
         query: String,
@@ -175,7 +182,7 @@ class AssistantViewModel @Inject constructor(
         previousState: PreviousPlanState?,
         calls: AssistantToolCalls,
         allowConflictRetry: Boolean,
-    ) {
+    ): PreviousPlanState? {
         val executed = tools.execute(calls.tools)
         val step2 = AssistantAnswerRequest(
             planId = calls.planId.orEmpty(),
@@ -183,10 +190,18 @@ class AssistantViewModel @Inject constructor(
             query = query,
             toolResults = executed.results,
         )
-        when (val ans = api.send(step2)) {
+        var ans = api.send(step2)
+        if (ans is AssistantResult.RateLimited) {
+            // `answer` is never rate limited, so this is the busy 503: the backend kept the
+            // plan_id, so one retry with the same results does not cost a new `plan`.
+            val waitMs = ans.retryAfterS.coerceIn(1, MAX_BUSY_RETRY_S) * 1_000L
+            withContext(Dispatchers.Default) { delay(waitMs) }
+            ans = api.send(step2)
+        }
+        when (ans) {
             is AssistantResult.Unauthorized -> Unit
             is AssistantResult.Conflict -> if (allowConflictRetry) {
-                runTurn(
+                return runTurn(
                     userMessageId = userMessageId,
                     locale = locale,
                     query = query,
@@ -220,10 +235,12 @@ class AssistantViewModel @Inject constructor(
                             citations = pickedCitations,
                         ),
                     )
+                    return if (res.fallbackReason == null) state else null
                 }
                 is AssistantToolCalls -> appendError(AssistantErrorKind.NETWORK)
             }
         }
+        return null
     }
 
     private fun markUserMessageBlocked(userMessageId: Long) {
@@ -265,6 +282,7 @@ class AssistantViewModel @Inject constructor(
         const val MAX_QUERY_CHARS = 1_000
         private const val MAX_PREVIOUS_QUERIES = 2
         private const val MAX_PREVIOUS_QUERY_CHARS = 300
+        private const val MAX_BUSY_RETRY_S = 3
         private val LOCAL_TOOLS = setOf(AssistantToolName.STAT, AssistantToolName.GET_PROFILES)
     }
 }

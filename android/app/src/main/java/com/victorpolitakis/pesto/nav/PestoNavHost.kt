@@ -158,13 +158,10 @@ fun NavGraphBuilder.pestoDestinations(nav: NavHostController, undo: UndoSnackbar
 }
 
 /** A tab keeps its own back stack, and the start (Home) stays under the others. */
-fun NavHostController.openTab(tab: Tab) {
-    if (currentDestination?.hasRoute(tab.route::class) == true) return
-    navigate(tab.route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
-        launchSingleTop = true
-        restoreState = true
-    }
+fun NavHostController.openTab(tab: Tab) = navigate(tab.route) {
+    popUpTo(graph.findStartDestination().id) { saveState = true }
+    launchSingleTop = true
+    restoreState = true
 }
 
 /** Opens a validated [NavigationTarget] enum from the Assistant. */

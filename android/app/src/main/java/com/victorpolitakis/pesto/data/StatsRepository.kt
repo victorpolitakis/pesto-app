@@ -1,6 +1,5 @@
 package com.victorpolitakis.pesto.data
 
-import com.victorpolitakis.pesto.protocol.AssistantTimePeriod
 import com.victorpolitakis.pesto.util.WallClock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -11,6 +10,9 @@ import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** The periods the Assistant's local stat replies ask for. */
+enum class StatsPeriod { TODAY, WEEK, ALL }
 
 /** Period-filtered snapshot for local Assistant stat replies. */
 data class PeriodSnapshot(
@@ -65,13 +67,13 @@ class StatsRepository(
 
     fun byInsertMethod(): Flow<List<KeyCount>> = dao.byInsertMethod()
 
-    fun sinceEpochMillis(period: AssistantTimePeriod): Long = when (period) {
-        AssistantTimePeriod.TODAY -> startOf(today())
-        AssistantTimePeriod.WEEK -> startOf(today().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
-        AssistantTimePeriod.ALL -> 0L
+    fun sinceEpochMillis(period: StatsPeriod): Long = when (period) {
+        StatsPeriod.TODAY -> startOf(today())
+        StatsPeriod.WEEK -> startOf(today().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)))
+        StatsPeriod.ALL -> 0L
     }
 
-    suspend fun snapshot(period: AssistantTimePeriod): PeriodSnapshot {
+    suspend fun snapshot(period: StatsPeriod): PeriodSnapshot {
         val row = dao.totalsSince(sinceEpochMillis(period))
         return PeriodSnapshot(
             dictations = row.dictations,
@@ -81,7 +83,7 @@ class StatsRepository(
         )
     }
 
-    suspend fun topApps(period: AssistantTimePeriod, limit: Int = 3): List<AppUsage> =
+    suspend fun topApps(period: StatsPeriod, limit: Int = 3): List<AppUsage> =
         dao.topAppsSince(sinceEpochMillis(period), limit)
 
     private fun today(): LocalDate = Instant.ofEpochMilli(clock.now()).atZone(zone()).toLocalDate()

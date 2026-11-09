@@ -117,4 +117,28 @@ class StatsRepositoryTest {
         assertEquals(3, t.dictations)
         assertEquals(110, t.words)
     }
+
+    @Test
+    fun `period snapshots agree with the totals and respect today and the week`() = runTest {
+        known()
+        val t = stats.totals().first()
+        val all = stats.snapshot(StatsPeriod.ALL)
+        assertEquals(t.dictations, all.dictations)
+        assertEquals(t.words, all.words)
+        assertEquals(t.minutesSaved, all.minutesSaved, 1e-9)
+        assertEquals(t.wpm!!, all.wpm!!, 1e-9)
+
+        val today = stats.snapshot(StatsPeriod.TODAY)
+        assertEquals(2, today.dictations)
+        assertEquals(60, today.words)
+        assertEquals(0.5, today.minutesSaved, 1e-9)
+
+        val week = stats.snapshot(StatsPeriod.WEEK)
+        assertEquals(3, week.dictations)
+        assertEquals(140, week.words)
+        assertEquals(
+            listOf("com.whatsapp", "com.google.android.gm"),
+            stats.topApps(StatsPeriod.WEEK, limit = 3).map { it.packageName },
+        )
+    }
 }

@@ -39,6 +39,13 @@ data class PeriodTotalsRow(
 /** When a dictation ended and how many words were said, for the bars per day. */
 data class TimeWords(val createdAt: Long, val words: Int)
 
+/**
+ * Δ8: Σ max(0, words / 40 − audio_s / 60), one expression for [DictationDao.totals] and
+ * [DictationDao.totalsSince], so they cannot drift apart. The 40 is StatsRepository.TYPING_WPM.
+ */
+private const val MINUTES_SAVED_SQL =
+    "COALESCE(SUM(CASE WHEN audio_s IS NOT NULL THEN MAX(0, raw_words / 40.0 - audio_s / 60.0) ELSE 0 END), 0.0)"
+
 /** The column aliases are the field names of the classes the queries return. */
 @Dao
 interface DictationDao {
@@ -90,7 +97,7 @@ interface DictationDao {
             "COALESCE(SUM(CASE WHEN created_at >= :week THEN raw_words ELSE 0 END), 0) AS wordsThisWeek, " +
             "COALESCE(SUM(audio_s), 0.0) AS audioSeconds, " +
             "COALESCE(SUM(CASE WHEN audio_s IS NOT NULL THEN raw_words ELSE 0 END), 0) AS wordsWithAudio, " +
-            "COALESCE(SUM(CASE WHEN audio_s IS NOT NULL THEN MAX(0, raw_words / 40.0 - audio_s / 60.0) ELSE 0 END), 0.0) AS minutesSaved " +
+            MINUTES_SAVED_SQL + " AS minutesSaved " +
             "FROM dictations",
     )
     fun totals(today: Long, week: Long): Flow<TotalsRow>
@@ -110,7 +117,7 @@ interface DictationDao {
             "COALESCE(SUM(raw_words), 0) AS words, " +
             "COALESCE(SUM(audio_s), 0.0) AS audioSeconds, " +
             "COALESCE(SUM(CASE WHEN audio_s IS NOT NULL THEN raw_words ELSE 0 END), 0) AS wordsWithAudio, " +
-            "COALESCE(SUM(CASE WHEN audio_s IS NOT NULL THEN MAX(0, raw_words / 40.0 - audio_s / 60.0) ELSE 0 END), 0.0) AS minutesSaved " +
+            MINUTES_SAVED_SQL + " AS minutesSaved " +
             "FROM dictations WHERE created_at >= :since",
     )
     suspend fun totalsSince(since: Long): PeriodTotalsRow

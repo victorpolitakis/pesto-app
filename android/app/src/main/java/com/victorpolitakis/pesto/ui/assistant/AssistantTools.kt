@@ -12,6 +12,7 @@ import com.victorpolitakis.pesto.data.ProfilesCatalog
 import com.victorpolitakis.pesto.data.ProfilesRepository
 import com.victorpolitakis.pesto.data.SearchResult
 import com.victorpolitakis.pesto.data.SearchText
+import com.victorpolitakis.pesto.data.StatsPeriod
 import com.victorpolitakis.pesto.data.StatsRepository
 import com.victorpolitakis.pesto.protocol.AssistantStatMetric
 import com.victorpolitakis.pesto.protocol.AssistantTimePeriod
@@ -71,7 +72,7 @@ class AssistantTools(
         for (call in bounded.filter { it.tool == AssistantToolName.SEARCH_HISTORY }) {
             val kws = cleanAssistantKeywords(call.keywords)
             val period = call.period ?: AssistantTimePeriod.ALL
-            val since = stats.sinceEpochMillis(period)
+            val since = stats.sinceEpochMillis(period.toStats())
             val budget = (MAX_TOTAL_SNIPPETS - seenIds.size).coerceAtLeast(0)
             if (kws.isEmpty() || budget == 0) {
                 if (historyMatches == null) historyMatches = emptyList()
@@ -211,7 +212,7 @@ class AssistantTools(
                 }
             }
             AssistantStatMetric.TOP_APP -> {
-                val top = stats.topApps(period, limit = 3)
+                val top = stats.topApps(period.toStats(), limit = 3)
                 if (top.isEmpty()) {
                     res.getString(R.string.assistant_stat_top_app_none, periodLabel)
                 } else {
@@ -224,7 +225,7 @@ class AssistantTools(
                 }
             }
             AssistantStatMetric.WPM -> {
-                val snap = stats.snapshot(period)
+                val snap = stats.snapshot(period.toStats())
                 val wpm = snap.wpm?.roundToInt()
                 if (wpm == null) {
                     res.getString(R.string.assistant_stat_wpm_none, periodLabel)
@@ -236,7 +237,7 @@ class AssistantTools(
             AssistantStatMetric.WORDS,
             AssistantStatMetric.DICTATIONS,
             -> {
-                val snap = stats.snapshot(period)
+                val snap = stats.snapshot(period.toStats())
                 if (snap.dictations == 0) {
                     res.getString(R.string.assistant_stat_none, periodLabel)
                 } else {
@@ -275,6 +276,12 @@ class AssistantTools(
     private fun profileDisplayName(profileId: String, res: Resources): String {
         val nameRes = ProfilesCatalog.find(profileId)?.name
         return if (nameRes != null) res.getString(nameRes) else profileId.take(MAX_ID_CHARS)
+    }
+
+    private fun AssistantTimePeriod.toStats(): StatsPeriod = when (this) {
+        AssistantTimePeriod.TODAY -> StatsPeriod.TODAY
+        AssistantTimePeriod.WEEK -> StatsPeriod.WEEK
+        AssistantTimePeriod.ALL -> StatsPeriod.ALL
     }
 
     private fun localizedResources(locale: String): Resources {

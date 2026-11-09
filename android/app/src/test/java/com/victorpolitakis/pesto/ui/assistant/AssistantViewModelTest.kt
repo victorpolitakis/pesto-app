@@ -446,4 +446,104 @@ class AssistantViewModelTest {
             collector.cancel()
         }
     }
+
+    @Test
+    fun `previous plan state is only kept after a successful tool turn`() = runBlocking {
+        val statCalls = """{"type":"tool_calls","plan_id":null,"tools":[{"tool":"stat","metric":"words","period":"all"}]}"""
+        val (vm, requests) = makeVm { req, _, n ->
+            when (n) {
+                1, 4 -> jsonResp(req, 200, statCalls)
+                5 -> jsonResp(
+                    req,
+                    200,
+                    """{"type":"tool_calls","plan_id":"plan_state_12345678","tools":[{"tool":"recent_history","limit":1}]}""",
+                )
+                6 -> jsonResp(req, 500, """{"detail":"boom"}""")
+                else -> jsonResp(req, 200, """{"type":"reply","reply":"Εντάξει."}""")
+            }
+        }
+        fun previousOf(index: Int) =
+            protocolJson.decodeFromString(AssistantPlanRequest.serializer(), requests[index]).previous
+
+        val collector = CoroutineScope(Dispatchers.Unconfined)
+        try {
+            vm.state.first { !it.loading }
+            vm.send("Πόσες λέξεις;", "el") // 1: stat, local reply: state is kept
+            vm.state.first { it.messages.size == 2 && !it.busy }
+            vm.send("Γεια σου", "el") // 2: sees the stat state, plain reply clears it
+            vm.state.first { it.messages.size == 4 && !it.busy }
+            vm.send("Τι κάνεις;", "el") // 3: no state
+            vm.state.first { it.messages.size == 6 && !it.busy }
+            vm.send("Πόσες λέξεις πάλι;", "el") // 4: stat again
+            vm.state.first { it.messages.size == 8 && !it.busy }
+            vm.send("Τι υπαγόρευσα;", "el") // 5: recent_history, the answer (6) fails
+            vm.state.first { it.messages.size == 10 && !it.busy }
+            vm.send("Και τώρα;", "el") // 7: the failed answer cleared the state
+
+            assertEquals(null, previousOf(0))
+            assertEquals(AssistantToolName.STAT, previousOf(1)?.tool)
+            assertEquals(null, previousOf(2))
+            assertEquals(null, previousOf(3))
+            assertEquals(AssistantToolName.STAT, previousOf(4)?.tool)
+            vm.state.first { it.messages.size == 12 && !it.busy }
+            assertEquals(null, previousOf(6))
+        } finally {
+            collector.cancel()
+        }
+    }
+
+    @Test
+    fun `a busy 503 on the answer retries once with the same plan_id and results`() = runBlocking {
+        history.record(newDictation("Σημείωση δοκιμής", createdAt = NOW))
+        val (vm, requests) = makeVm { req, _, n ->
+            when (n) {
+                1 -> jsonResp(
+                    req,
+                    200,
+                    """{"type":"tool_calls","plan_id":"plan_busy_12345678","tools":[{"tool":"recent_history","limit":1}]}""",
+                )
+                2 -> jsonResp(req, 503, """{"detail":"busy","retry_after_s":1}""")
+                else -> jsonResp(req, 200, """{"type":"reply","reply":"Τώρα πέτυχε.","relevant":[0]}""")
+            }
+        }
+        val collector = CoroutineScope(Dispatchers.Unconfined)
+        try {
+            vm.state.first { !it.loading }
+            vm.send("Τι υπαγόρευσα;", "el")
+            val done = vm.state.first { it.messages.size == 2 && !it.busy }
+            assertEquals(3, requests.size)
+            assertEquals(requests[1], requests[2]) // same plan_id, same tool_results
+            assertEquals("Τώρα πέτυχε.", done.messages[1].text)
+            assertFalse(done.messages[1].isError)
+            assertEquals(0, done.cooldownSeconds)
+        } finally {
+            collector.cancel()
+        }
+    }
+
+    @Test
+    fun `a second busy 503 on the answer shows the cooldown without a third try`() = runBlocking {
+        history.record(newDictation("Σημείωση δοκιμής", createdAt = NOW))
+        val (vm, requests) = makeVm { req, _, n ->
+            when (n) {
+                1 -> jsonResp(
+                    req,
+                    200,
+                    """{"type":"tool_calls","plan_id":"plan_busy_87654321","tools":[{"tool":"recent_history","limit":1}]}""",
+                )
+                else -> jsonResp(req, 503, """{"detail":"busy","retry_after_s":1}""")
+            }
+        }
+        val collector = CoroutineScope(Dispatchers.Unconfined)
+        try {
+            vm.state.first { !it.loading }
+            vm.send("Τι υπαγόρευσα;", "el")
+            val done = vm.state.first { it.messages.size == 2 && !it.busy }
+            assertEquals(3, requests.size)
+            assertEquals(AssistantErrorKind.RATE_LIMITED, done.messages[1].errorKind)
+            assertEquals(1, done.cooldownSeconds)
+        } finally {
+            collector.cancel()
+        }
+    }
 }
